@@ -1,0 +1,46 @@
+.display-readout {
+  font-family: 'Courier New', Courier, monospace; /* Classic hardware look */
+  background: #b5b5b5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.text-alert {
+  color: #ff4d4d; /* Red for high values */
+}
+
+.text-ok {
+  color: #007832; /* Green for normal values */
+}
+
+.display-unit {
+  font-size: 0.7em;
+  margin-left: 2px;
+  color: #888;
+}
+.value-container {
+  flex: 0 0 auto; 
+  display: flex;
+  align-items: center;
+}
+.display-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: left; /* Pushes label left, value right */
+  align-items: center;            /* Vertically centers text */
+  padding: 8px 0;
+  width: 100%;
+  border-bottom: 1px solid rgba(0,0,0,0.05); /* Subtle separator */
+}
+.group-title {
+  margin: 8px 0 4px 0; /* Top, Right, Bottom, Left */
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-major); /* Optional: visual separator */
+  line-height: 1.2;
+}
+.controlsPanel h4 {
+  /* color: var(--color-major); */
+  font-weight: 600; /* Slightly bolder than the rows */
+  text-transform: capitalize; /* Cleaner than all-caps for titles */
+}

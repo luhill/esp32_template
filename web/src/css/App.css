@@ -1,0 +1,119 @@
+:root {
+  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --ui-font-size: 20px;
+  --ui-color-major: #b5b5b5;
+  --ui-color-row: #51515137;
+  --ui-color-panel: #252525;
+  --ui-color-minor: #000000;
+}
+.controlsPanel {
+  background-color: var(--ui-color-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  width: 100%;
+  max-width: 420px; /* iPhone width */
+  box-sizing: border-box;
+  margin: 0 auto;
+  position: relative; /* Add this */
+  -webkit-overflow-scrolling: touch; /* Add this for smooth iOS scrolling */
+}
+.app-label{
+  flex: 0 0 60px;
+}
+
+.controlRow {
+  background-color: var(--ui-color-row);
+  border-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  width: 100%; /* Add this */
+  box-sizing: border-box; /* Add this */
+}
+/* utility class to style app-wide typography */
+.color-base{
+  accent-color: var(--ui-color-major);
+  color: var(--ui-color-major);
+  border-color: var(--ui-color-major);
+}
+.color-minor{
+  accent-color: var(--ui-color-minor);
+  color: var(--ui-color-minor);
+  background-color: var(--minor-color); /* Background color */
+}
+.font-base {
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size);
+  color: var(--ui-color-major);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.slider:before{
+  background-color: var(--ui-color-major);
+  border: 1px solid var(--ui-color-minor);
+}
+.switch input[type="checkbox"]:checked + .slider {
+    background-color:var(--ui-color-major);
+}
+.switch input[type="checkbox"] + .slider {
+    /* background-color:var(--ui-color-minor); */
+    border: 1px solid var(--ui-color-major);
+}
+.app-btn {
+  width: 100%;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-style: solid;
+  border-width: 2px;
+  border-radius: 8px;
+  border-color: var(--ui-color-major);
+  background-color: var(--ui-color-row);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: filter 0.1s ease;
+}
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+.main-content{
+  background-color: black;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

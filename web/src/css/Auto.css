@@ -1,0 +1,75 @@
+.auto-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.auto-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* DateTime Row */
+.datetime-row {
+    justify-content: flex-start;
+}
+
+.auto-label {
+    flex: 0 0 60px; /* fixed width for the label on the left */
+}
+
+.datetime-input {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    background-color: white;
+    flex: 1;
+    max-width: 250px;
+}
+
+.datetime-input:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 4px rgba(33, 150, 243, 0.3);
+}
+
+.datetime-input:hover {
+    border-color: #bbb;
+}
+
+/* Time Row */
+.time-row {
+    justify-content: flex-start;
+}
+
+.time-input {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    background-color: white;
+    flex: 1;
+    max-width: 150px;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 4px rgba(33, 150, 243, 0.3);
+}
+
+.time-input:hover {
+    border-color: #bbb;
+}

@@ -1,0 +1,64 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0px 12px;
+  background: #5b5b5b;
+  box-sizing: border-box;
+  border-bottom: 5px solid rgb(0, 0, 0);
+}
+
+/* Brand */
+.navbar-brand .brand-link {
+  font-weight: 600;
+  color: #121212;
+  text-decoration: none;
+  padding: 6px 8px;
+}
+
+/* Tab container */
+.navbar-links {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Individual tab look */
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  text-decoration: none;
+  color: #a1a1a1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0; /* rounded top corners like a tab */
+  font-size: 14px;
+  transition: background .12s, color .12s, border-color .12s;
+}
+
+/* Hover */
+.nav-link:hover {
+  background: rgba(0,0,0,0.03);
+  color: #222;
+}
+
+/* Active tab */
+.nav-link.active {
+  background: #020202;
+  color: hsl(0, 0%, 100%);
+  border-color: rgba(0,0,0,0.08);
+  border-bottom-color: #000000; /* hide seam between tab and content */
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+}
+
+/* Make tabs responsive on small screens */
+@media (max-width: 420px) {
+  .nav-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}

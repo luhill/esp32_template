@@ -1,0 +1,62 @@
+.switch {
+    display: flex;
+    align-items: center;     /* vertical centering */
+    justify-content: left; /* center label+switch horizontally within the div */
+    gap: 12px;
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* left label */
+.slider-label {
+    flex: 0 0 60px; /* fixed width for the label on the left */
+    /*font-size: 16px;
+    font-weight: bold;
+    color: #222;*/
+}
+
+/* target the second label that wraps the input+visual slider */
+.switch label + label {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+}
+
+/* hide native checkbox */
+.switch input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* visual slider track */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    /* background-color: #ccc; */
+    transition: background-color .2s;
+    border-radius: 34px;
+}
+
+/* knob */
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    top: 1px;
+    /* background-color: #cf0d0d; */
+    transition: transform .2s;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.switch input[type="checkbox"]:checked + .slider:before {
+    transform: translateX(24px);
+}

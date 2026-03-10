@@ -1,0 +1,47 @@
+/* .controlsPanel {
+  background-color: #252525;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+
+  /* constrain to roughly an iPhone screen and center */
+  /* width: 100%;
+  max-width: 420px; approx iPhone viewport width */
+  /* box-sizing: border-box;
+  margin: 0 auto; */
+/* }
+
+.controlRow {
+  background-color: #51515137;
+  border-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+} */ 
+
+.controlsPanel {
+  background-color: #252525;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  width: 100%;
+  max-width: 420px; /* iPhone width */
+  box-sizing: border-box;
+  margin: 0 auto;
+  position: relative; /* Add this */
+  -webkit-overflow-scrolling: touch; /* Add this for smooth iOS scrolling */
+}
+
+.controlRow {
+  background-color: #51515137;
+  border-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  width: 100%; /* Add this */
+  box-sizing: border-box; /* Add this */
+}

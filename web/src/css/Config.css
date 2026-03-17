@@ -1,0 +1,226 @@
+.config-page {
+  /* 3. The "Resize" Fix: Use width: 100% so it shrinks, but max-width so it doesn't get too big */
+  width: 100%;
+  max-width: 400px;
+  
+  padding: 15px;
+  margin: 0 auto;
+  background-color: #000000e7;
+  border-radius: 12px;
+  border: 1px solid #7c7c7c;
+  
+  /* 4. Ensure the card itself uses border-box */
+  box-sizing: border-box; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  cursor: default;
+}
+.section-title { font-size: 0.8rem; text-transform: uppercase; opacity: 0.5; letter-spacing: 1px; margin-bottom: 10px; margin-top: 0px; }
+.config-header{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+}
+/* Upper Grid: 3 main columns + small delete */
+.hardware-grid {
+  display: grid;
+  /* Use minmax(0, 1fr) to force inputs to shrink rather than overlap */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) 40px;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 6px;
+  width: 100%;
+}
+.hardware-grid.header {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  padding-bottom: 5px;
+}
+.icon-btn{
+  background-color: var(--ui-color-major);
+  color: var(--ui-color-minor);
+}
+/* --- UNIVERSAL INPUT STYLE --- */
+.config-input {
+  width: 100%;
+  min-width: 0; /* Prevents grid overlap */
+  background-color: var(--ui-color-input); /* Dark charcoal */
+  color: #ffffff !important;
+  border: 1px solid #7c7c7c;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  box-sizing: border-box; 
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.config-input:focus {
+  background-color: #222 !important;
+  border-color: var(--color-accent) !important;
+  outline: none;
+}
+
+/* --- GHOST ROW SPECIFIC --- */
+/* The container gets the dashed outline, NOT the inputs */
+.hardware-grid.ghost {
+  outline: 2px dashed var(--ui-color-input);
+  outline-offset: 2px;
+  background: rgba(0, 123, 255, 0.03);
+  color: white;
+  border-radius: 4px;
+  margin-top: 8px;
+  opacity: 0.6;
+}
+
+/* Make ghost inputs slightly more transparent to signify "New" */
+.hardware-grid.ghost .config-input {
+  background-color: var(--ui-color-input);
+  color: white;
+  border-color: transparent;
+}
+.hardware-grid.ghost .config-input::placeholder {
+  color: white; /* Subtle but visible */
+}
+/* Lower Grid: Compact Update focus */
+.fleet-grid {
+  display: grid;
+  grid-template-columns: 35px 20px 1fr 40px 1.5fr 40px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.visibility-btn{
+  color: var(--ui-color-minor);
+  background-color: var(--ui-color-minor);
+
+}
+.config-section{
+  padding-bottom: 15px;
+}
+.fleet-grid.selected { background: rgba(0, 123, 255, 0.05); }
+
+.device-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.version-tag {
+  font-size: 0.65rem;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-accent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  width: fit-content;
+}
+.update-panel-wrapper {
+  margin: 0;
+  padding: 0;
+  /* background: var(--ui-color-row);
+  border: 1px solid var(--ui-color-major);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+  padding: 8px; */
+}
+
+.update-panel-header {
+  display: flex;
+  justify-content: space-between; /* Pushes label left and button right */
+  align-items: center;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.updating-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+.close-panel-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s;
+}
+
+.close-panel-btn:hover {
+  color: #ff4d4d; /* Red on hover to signal "close/cancel" */
+}
+
+.config-overlay-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  
+  /* 1. THE FIX: Use Dynamic Viewport Height */
+  /* This automatically shrinks when the address bar is visible */
+  height: 100dvh; 
+  
+  /* Fallback for older browsers */
+  min-height: 100%; 
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+
+  /* 2. ADD EXTRA BOTTOM PADDING */
+  /* This ensures the very last item isn't hugged by the screen edge */
+  padding: 80px 15px 100px 15px; 
+
+  background: rgba(0, 0, 0, 0.05);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  box-sizing: border-box;
+  z-index: 4000;
+  cursor: pointer;
+}
+
+.config-overlay-content {
+  background: #121212;
+  top:80px;
+  width: 100%;
+  max-width: 420px;
+  min-height: 80vh;
+  border-radius: 16px;
+  border: 1px solid rgba(232, 10, 10, 0.784);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  padding: 30px;
+  position: relative;
+  margin-top: 100px; /* Space for the floating close button */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.host-label { font-size: 0.85rem; font-weight: 600; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; }
+.tab-input { background: rgba(0,0,0,0.2); border: 1px solid transparent; padding: 4px 8px; border-radius: 4px; color: #fff; width: 100%; }
+
+.order-btns { display: flex; flex-direction: column; gap: 2px; }
+.order-btns button { background: #333; border: none; color: #fff; padding: 2px; border-radius: 2px; line-height: 0; }
+
+.update-selector { display: flex; justify-content: center; }
+
+/* General styles */
+.header { font-weight: bold; font-size: 0.7rem; opacity: 0.6; }
+

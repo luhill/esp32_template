@@ -12,7 +12,7 @@ const logList = typeof entries === 'string' ? JSON.parse(entries) : entries;
         ) : (
           logList.map((entry, i) => (
             <div key={i} className="log-entry color-major">
-              <samp className="display-readout"><small><small>{entry}</small></small></samp>
+              <samp className="display-readout"><small><small><small>{entry}</small></small></small></samp>
             </div>
           ))
         )}

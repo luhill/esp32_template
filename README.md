@@ -2,6 +2,7 @@
 This project contains two main sections the back end and front end web based ui for an esp32
 
 Backend:(/src)
+    -Update src/config/secrets.h with your wifi and password
     -The top level folder src contains main.cpp and other libraries for building the back end
     -The back end uses the Multi_Control class in Control.h to build a generic control
         -Controls are built around arduino json which allows them to generate their own ui json that is used by the front end to display them
@@ -22,4 +23,20 @@ Frontend: (/web)
     -Or the ui files are automatically generated and built into littlefs.bin using the platformio "Build Filesystem Image" and "Upload Filesystem Image" buttons in the platformio tab
         -platformio is instructed to run myscript.py before the filesystem is built which copies the relevant files from /web/dist into the /data folder
 
+    -Deploy front end to Github:
+        npm run build:pwa
+        npm run deploy
         
+
+    -Deploy front end to raspberry pi: runs a script to ssh into your pi, copy the front end web interface and open a browser tab to it.
+    -Make sure to create a file: ".env.local" in the same directory as package.json with your pi user name and address.
+    -The content of .env.local should be:
+        
+        #update to your raspberry pi ssh username
+        VITE_PI_SSH_USERNAME="username"
+
+        #update to your raspberry pi address
+        VITE_PI_ADDRESS="your-pi.local"
+
+    Deploy to your pi with:
+        npm run deploy:pi

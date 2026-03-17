@@ -1,0 +1,90 @@
+.sidebar-narrow {
+  width: 50px;
+  height: 100dvh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  /* Sidebar background is transparent to let the page flow behind it */
+  background: transparent; 
+}
+
+.sidebar-tabs-container {
+  /* Pushes the first tab down to align below your Navbar */
+  margin-top: 65px; 
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 5px;
+}
+
+.nav-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 0;
+  text-decoration: none;
+  /* background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(5px); */
+  background:var(--ui-color-panel);
+  border-radius: 10px;
+  /* transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 75px;
+}
+
+.nav-tab.active {
+  background: var(--ui-color-minor);
+  border-color: var(--ui-color-major);
+  border: 2px solid var(--ui-color-major);
+  /* box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); */
+}
+
+/* --- MODERN STATUS INDICATOR --- */
+.status-indicator {
+  width: 4px;
+  height: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.status-indicator.online {
+  background: #28a745;
+  box-shadow: 0 0 8px #28a745;
+}
+
+.status-indicator.partial {
+  background: #ffc107;
+  box-shadow: 0 0 8px #ffc107;
+}
+
+.status-indicator.offline {
+  background: #dc3545;
+  box-shadow: 0 0 8px #dc3545;
+  animation: status-pulse 2s infinite;
+}
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.nav-tab.active .vertical-text {
+  color: var(--ui-color-major);
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

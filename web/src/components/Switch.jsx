@@ -3,6 +3,7 @@ import "../css/Switch.css"
 import "../css/App.css"
 
 function Switch({ props, setValue }) {
+    const isChecked = !!props.value; 
 
     const onInput = (e) => {
         if (setValue) {
@@ -17,7 +18,7 @@ function Switch({ props, setValue }) {
                 <input className = "color-minor"
                     type="checkbox" 
                     onChange={onInput} 
-                    checked={props.value}/>
+                    checked={isChecked||false}/>
                 <span className="slider round"></span>
             </label>
         </div>

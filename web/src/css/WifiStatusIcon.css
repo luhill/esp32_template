@@ -1,0 +1,48 @@
+/* --- BASE ICON STYLING --- */
+.status-icon-wifi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 0;
+}
+
+/* --- STATE COLORS --- */
+.status-icon-wifi.online {
+  color: #28a745;
+  filter: drop-shadow(0 0 4px rgba(40, 167, 69, 0.4));
+}
+
+.status-icon-wifi.partial {
+  color: #ffc107;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.4));
+}
+
+.status-icon-wifi.offline {
+  color: #dc3545;
+  filter: drop-shadow(0 0 4px rgba(220, 53, 69, 0.4));
+  animation: wifi-blink 1.5s infinite;
+}
+
+/* --- THE DATA PULSE (Color-Agnostic) --- */
+.status-icon-wifi.data-pulse {
+  animation: data-flash 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes data-flash {
+  0% { 
+    /* Brightens current color (Green or Gold) by 50% */
+    filter: brightness(1.5) drop-shadow(0 0 8px currentColor);
+    transform: scale(1.2);
+  }
+  100% { 
+    filter: brightness(1) drop-shadow(0 0 4px currentColor);
+    transform: scale(1);
+  }
+}
+
+/* --- OFFLINE BLINK --- */
+@keyframes wifi-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.95); }
+}

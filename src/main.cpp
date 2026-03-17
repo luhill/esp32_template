@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <vector>
 #include <Control/Control.h>
-
+#include <secrets.h> //update your wifi ssid and pw in src/config/secrets.h
 
 //#include <Preferences.h>
 #ifndef APP_JSON_STRING
@@ -43,6 +43,9 @@ JsonDocument jsonReply;
 Preferences preferences;
 std::vector<ControlBase*> uiRegistry;
 
+#define NAME "Test2"
+#define NAME_HOST "test2"
+#define FIRMWARE_VERSION "v1.0.3"
 bool flag_update_ui = false;
 //------------------------------Modules-----------------------------------------//
 #define HAS_BRUSHED_MOTOR
@@ -77,14 +80,14 @@ bool flag_update_ui = false;
 #define HAS_LOG
 #ifdef HAS_LOG
     #include <modules/module_log.h>
-    Module_Log module_log("settings","log","Log");
+    Module_Log module_log("info","log","Log");
 #endif
 #define HAS_WIFI
 #ifdef HAS_WIFI
 #include <Wifi_socket/myWifi_socket.h>
 #include <modules/module_wifi.h>
-    MyWiFi_socket wifi(Module_WiFi::jsonFromWeb, "test", "glitchy", "298Seven", false);
-    Module_WiFi module_wifi("settings", "wifi", "Network Status");
+    MyWiFi_socket wifi(Module_WiFi::jsonFromWeb, NAME_HOST, WIFI_SSID, WIFI_PASSWORD, false);
+    Module_WiFi module_wifi("info", "wifi", "Network Status");
 #endif
 
 //------------------------------Rotary Encoder----------------------------------//
@@ -196,14 +199,22 @@ void loadSettings() {
 void buildControlsJson() {
     // First, deserialize the APP_JSON_STRING to initialize jsonMaster
     // This allows the base structure (app_name, etc.) to be defined in app.json
+    //#define USE_APP_JSON //parses the json in app.json and adds it to the master json to send to the front end
+    #ifdef USE_APP_JSON
     DeserializationError error = deserializeJson(jsonMaster, APP_JSON_STRING);
     if (error) {
         debugfln("Failed to parse APP_JSON_STRING: %s", error.c_str());
         //return;
     }
-    
-    //JsonObject root = jsonMaster["controls"].to<JsonObject>();
-    JsonObject root = jsonMaster.as<JsonObject>();
+    #endif
+
+    jsonMaster.clear();
+    JsonObject root = jsonMaster.to<JsonObject>();
+
+    // 3. Add the Name FIRST
+    // This ensures it sits at the top level of the JSON object
+    //root["name"] = NAME;
+    root["ver"] = FIRMWARE_VERSION;
     for (auto* base : uiRegistry) {
         MultiControl* mc = static_cast<MultiControl*>(base);
         mc->build(root);

@@ -101,9 +101,13 @@ void MyWiFi_socket::start_wifi() {
         }
         request->send(200, "text/plain", "hello from test");
     });
-
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Content-Type, X-File-Type");
     server.on("/do-update", HTTP_POST, MyWiFi_socket::handleUpdateResponse, NULL, MyWiFi_socket::handleUpdateBody);
-
+    server.on("/do-update", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {//handle cross origin updates
+        request->send(200);
+    });
     // ElegantOTA.begin(&server);  // Start ElegantOTA
     // // ElegantOTA callbacks
     // ElegantOTA.onStart(onOTAStart);

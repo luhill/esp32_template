@@ -67,7 +67,11 @@ public:
             debugln("WiFi: Invalid JSON received");
             return "";
         }
-
+        if(incomingDoc["cmd"]=="refresh"){
+            String c;
+            serializeJson(jsonMaster, c);
+            return c;
+        }
         jsonReply.clear();
         JsonObject root = incomingDoc.as<JsonObject>();
 

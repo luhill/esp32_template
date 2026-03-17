@@ -13,9 +13,11 @@ export const getDummyData = () => {
     setTimeout(() => {
       //const response = '{"controls":[{"id":0, "name":"Power", "type":"switch", "value":0},{"id":1, "name":"Duty", "type":"slider", "value":69}]}';
       const response = `{
-  "app_name":"Bidet App",
-  "home":{
-        "auto":{
+  "bidet": {
+    "name": "Bidet",
+    "ver": "v1.0.1",
+    "home": {
+      "auto":{
             "type":"autoStartStop",
             "value":{
                 "date_time_now":"2026-02-24T17:38:38",
@@ -75,22 +77,30 @@ export const getDummyData = () => {
         }
     },
     "settings":{
+        "switch3":{
+            "name":"My Switch",
+            "type":"switch",
+            "value":0
+        }
+    }
+  },
+  "test": {
+    "name": "Test32",
+    "ver": "v1.0.0",
+    "home": {
+      "led2": { "type": "led", "name": "LED", "value":{"color":{"r":100}} },
+      "power": { "type": "switch", "name": "Main Power", "value": true }
+    },
+    "settings":{
         "wifi":{
             "name":"Wifi",
             "type":"display",
             "value":{
-                "rssi": -48,
-                "ip":"10.0.0.1"
-            }
-        },
-        "log":{
-            "name":"Log",
-            "type":"list",
-            "value":{
-                "entries":["one","two"]
+                "rssi":-55, "ip":"10.0.0.test"
             }
         }
     }
+  }
 }`;
       resolve(JSON.parse(response)); // Resolve the promise with the provided data after the delay
     }, 100);

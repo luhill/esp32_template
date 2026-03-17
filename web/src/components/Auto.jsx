@@ -19,20 +19,10 @@ import '../css/App.css';
 */
 
 function Auto({ props, setValue }) {
-    // const onDateTimeChange = (e) => {
-    //     setValue({ date_time_now: e.target.value });
-    // };
+    const { on, start, stop } = props.value;
 
     const onAutoChange = (v) => {
         setValue({ on: v });
-    };
-
-    const onStartTimeChange = (e) => {
-        setValue({ start: timeToSeconds(e.target.value) });
-    };
-
-    const onStopTimeChange = (e) => {
-        setValue({ stop: timeToSeconds(e.target.value) });
     };
 
     // Convert seconds since midnight to HH:MM format
@@ -51,48 +41,33 @@ function Auto({ props, setValue }) {
 
     return (
         <div className="auto-container">
-            {/* Row 1: Current Date/Time (Editable)
-            <div className="auto-row datetime-row">
-                <label className="auto-label font-base">Date</label>
-                <input
-                    type="datetime-local"
-                    className="datetime-input"
-                    value={props.value.date_time_now}
-                    onChange={onDateTimeChange}
-                />
-            </div> */}
-
-            {/* Row 2: Auto Switch */}
-            <Switch 
-                props={{ name: "Auto", value: props.value.on}} 
-                setValue={onAutoChange} 
+            {/* Row 1: Auto Switch */}
+            <Switch
+                props={{ name: props.Name || "Auto", value: !!on }}
+                setValue={onAutoChange}
             />
-
-            {/* Row 3: Start Time (visible only if auto is enabled) */}
-            {props.value.on && (
+            {!!on && (<>
+                {/* Row 2: Start Time (visible only if auto is enabled) */}
                 <div className="auto-row time-row">
                     <label className="auto-label font-base">Start</label>
                     <input
                         type="time"
                         className="time-input"
-                        value={secondsToTime(props.value.start)}
-                        onChange={onStartTimeChange}
+                        value={secondsToTime(start)}
+                        onChange={(e) => setValue({ start: timeToSeconds(e.target.value) })}
                     />
                 </div>
-            )}
-
-            {/* Row 4: Stop Time (visible only if auto is enabled) */}
-            {props.value.on && (
+                {/* Row 3: Stop Time (visible only if auto is enabled) */}
                 <div className="auto-row time-row">
                     <label className="auto-label font-base">Stop</label>
                     <input
                         type="time"
                         className="time-input"
-                        value={secondsToTime(props.value.stop)}
-                        onChange={onStopTimeChange}
+                        value={secondsToTime(stop)}
+                        onChange={(e) => setValue({ stop: timeToSeconds(e.target.value) })}
                     />
                 </div>
-            )}
+            </>)}
         </div>
     );
 }

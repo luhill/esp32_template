@@ -2,16 +2,18 @@
   --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
   --ui-font-size: 20px;
   --ui-color-major: #b5b5b5;
-  --ui-color-row: #51515137;
+  --ui-color-row: #68686837;
   --ui-color-panel: #252525;
   --ui-color-minor: #000000;
+  --ui-color-input: #6f6f6f;
 }
 .controlsPanel {
   background-color: var(--ui-color-panel);
   display: flex;
   flex-direction: column;
+  border-radius: 12px; 
   gap: 16px;
-  padding: 12px;
+  padding: 6px;
   width: 100%;
   max-width: 420px; /* iPhone width */
   box-sizing: border-box;
@@ -26,10 +28,12 @@
 .controlRow {
   background-color: var(--ui-color-row);
   border-style: none;
+  border-radius: 12px; 
   display: flex;
   flex-direction: column;
+  margin-bottom: 10px;
   gap: 16px;
-  padding: 12px;
+  padding: 5px;
   width: 100%; /* Add this */
   box-sizing: border-box; /* Add this */
 }
@@ -86,7 +90,11 @@
   pointer-events: none;
 }
 .main-content{
-  background-color: black;
+  background-color: var(--ui-color-minor);
+  padding-left: 50px; 
+  padding-top: 60px; /* Space for the fixed Navbar */
+  width: 100%;
+  box-sizing: border-box;
 }
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
@@ -108,7 +116,69 @@
 .App-link {
   color: #61dafb;
 }
+.app-layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: var(--ui-color-minor);
+}
 
+.app-layout.no-sidebar .main-content {
+  /* width: 100vw;
+  flex: 1; */
+  padding-left: 0;
+}
+/* Ensure the Sidebar doesn't leave a ghost 'border-right' or gap */
+.app-layout.no-sidebar .sidebar-narrow {
+  display: none;
+}
+.main-content {
+  flex: 1;
+  overflow-x: hidden; /* Prevents side-scrolling on iPhone */
+}
+.dev-helper-floating {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  opacity: 0.8;
+}
+.floating-config-btn {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 3000; /* Above everything */
+  width: 35px;
+  height: 35px;
+  background: var(--ui-color-panel);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--ui-color-input);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.floating-config-btn:hover, 
+.floating-config-btn.active {
+  color: var(--ui-color-major);
+  border-color: var(--ui-color-major);
+  /* background: rgb(200, 14, 14); */
+  transform: rotate(30deg); /* Subtle gear-turn effect */
+}
+
+/* On mobile, make it slightly smaller to save space */
+@media (max-width: 768px) {
+  .floating-config-btn {
+    top: 8px;
+    right: 8px;
+    width: 35px;
+    height: 35px;
+  }
+}
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

@@ -1,4 +1,167 @@
+
+/*--------------------------------------------------------------*/
+/* --- NAVBAR CONTAINER --- */
+/* .navbar {
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  gap: 16px;
+  padding: 0px 12px;
+  background: #2a2a2a; 
+  box-sizing: border-box;
+  border-bottom: 3px solid #000000;
+  height: 50px; 
+} */
 .navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%; /* Spans all the way from left edge to right edge */
+  height: 50px;
+  z-index: 2000; /* Stays above the sidebar tabs */
+  background: var(--ui-color-panel);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+/* --- BRAND & DISPLAY NAME --- */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 100px;
+}
+
+.navbar-brand .brand-link {
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+/* --- TAB NAVIGATION --- */
+.navbar-links {
+  display: inline-flex;
+  gap: 4px;
+  align-items: flex-end; /* Align tabs to the bottom seam */
+  height: 100%;
+  padding-right: 50px;
+  padding-left: 20px
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  text-decoration: none;
+  color: #888;
+  background: transparent;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link.active {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #444;
+  border-bottom-color: #000; /* Merge with navbar bottom border */
+}
+
+.nav-link.icon-link {
+  padding: 8px 10px;
+}
+
+/* --- WIFI STATUS ICONS (ZONE HEALTH) --- */
+.status-icon-wifi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* GREEN: All devices in zone connected */
+.status-icon-wifi.online {
+  color: #28a745;
+  filter: drop-shadow(0 0 4px rgba(40, 167, 69, 0.4));
+}
+
+/* YELLOW: Some devices in zone connected, some missing */
+.status-icon-wifi.partial {
+  color: #ffc107;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.4));
+}
+
+/* RED: All devices in zone offline */
+.status-icon-wifi.offline {
+  color: #dc3545;
+  filter: drop-shadow(0 0 4px rgba(220, 53, 69, 0.4));
+  animation: wifi-blink 1.5s infinite;
+}
+
+/* --- ANIMATIONS --- */
+
+/* Blinking effect for total offline status */
+@keyframes wifi-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.9); }
+}
+
+/* Rapid flash when data is received (only on Green/Online) */
+.status-icon-wifi.data-pulse {
+  animation: data-flash 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes data-flash {
+  0% { 
+    /* Boost the existing color's brightness by 50% */
+    filter: brightness(1.5) drop-shadow(0 0 8px currentColor);
+    transform: scale(1.15);
+  }
+  100% { 
+    /* Return to normal brightness and the standard 4px glow */
+    filter: brightness(1) drop-shadow(0 0 4px currentColor);
+    transform: scale(1);
+  }
+}
+/* @keyframes data-flash {
+  0% { 
+    color: #00ff44; 
+    filter: drop-shadow(0 0 8px rgba(0, 255, 68, 0.8));
+    transform: scale(1.15);
+  }
+  100% { 
+    color: #28a745; 
+    filter: drop-shadow(0 0 4px rgba(40, 167, 69, 0.4));
+    transform: scale(1);
+  }
+} */
+
+/* --- RESPONSIVE ADJUSTMENTS --- */
+@media (max-width: 480px) {
+  .nav-link {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .navbar-brand .brand-link {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+/* .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7,25 +170,25 @@
   background: #5b5b5b;
   box-sizing: border-box;
   border-bottom: 5px solid rgb(0, 0, 0);
-}
+} */
 
 /* Brand */
-.navbar-brand .brand-link {
+/* .navbar-brand .brand-link {
   font-weight: 600;
   color: #121212;
   text-decoration: none;
   padding: 6px 8px;
-}
+} */
 
 /* Tab container */
-.navbar-links {
+/* .navbar-links {
   display: inline-flex;
   gap: 6px;
   align-items: center;
-}
+} */
 
 /* Individual tab look */
-.nav-link {
+/* .nav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -35,30 +198,77 @@
   background: transparent;
   border: 1px solid transparent;
   border-bottom: 2px solid transparent;
-  border-radius: 8px 8px 0 0; /* rounded top corners like a tab */
+  border-radius: 8px 8px 0 0;
   font-size: 14px;
   transition: background .12s, color .12s, border-color .12s;
-}
+} */
 
 /* Hover */
-.nav-link:hover {
+/* .nav-link:hover {
   background: rgba(0,0,0,0.03);
   color: #222;
-}
+} */
 
 /* Active tab */
-.nav-link.active {
+/* .nav-link.active {
   background: #020202;
   color: hsl(0, 0%, 100%);
   border-color: rgba(0,0,0,0.08);
   border-bottom-color: #000000; /* hide seam between tab and content */
-  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
-}
+  /* box-shadow: 0 1px 0 rgba(0,0,0,0.04); */
+/* }  */
 
 /* Make tabs responsive on small screens */
-@media (max-width: 420px) {
+/* @media (max-width: 420px) {
   .nav-link {
     padding: 8px 10px;
     font-size: 13px;
   }
+} */
+
+/* .navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
+
+
+.status-icon-wifi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.status-icon-wifi.online {
+  color: #28a745;
+  filter: drop-shadow(0 0 4px rgba(40, 167, 69, 0.4));
+}
+
+.status-icon-wifi.offline {
+  color: #dc3545;
+  filter: drop-shadow(0 0 4px rgba(220, 53, 69, 0.4));
+  animation: wifi-blink 1.5s infinite; /* Blinking "Signal Lost" effect */
+/* }  */
+/* 
+@keyframes wifi-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.9); }
+} */
+
+/* .status-icon-wifi.data-pulse {
+  animation: data-flash 0.4s cubic-bezier(0.4, 0, 0.2, 1);;
+} */
+
+/* @keyframes data-flash {
+  0% { 
+    color: #00ff44;
+    filter: drop-shadow(0 0 8px rgba(0, 255, 68, 0.8));
+    transform: scale(1.1);
+  }
+  100% { 
+    color: #28a745; 
+    filter: drop-shadow(0 0 4px rgba(40, 167, 69, 0.4));
+    transform: scale(1);
+  }
+} */

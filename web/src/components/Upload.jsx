@@ -118,13 +118,13 @@ function Upload({ targetHost, onClose }) {
         <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--ui-color-major)' }}>
           Update Tool
         </h4>
-        <small style={{ opacity: 0.6, fontSize: '0.8rem' }}>
+        <div className="targetLabel">
           Target: {deviceConfig.name || targetHost}
-        </small>
+        </div>
       </div>
       
       <button onClick={onClose} className="icon-btn-close">
-        <XCircleIcon size={24} color="var(--ui-color-major)" strokeWidth={1.5} />
+        <XCircleIcon size={24} color="#ff4d4d" strokeWidth={1.5} />
       </button>
     </header>
 

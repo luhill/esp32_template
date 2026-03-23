@@ -40,3 +40,5 @@ Frontend: (/web)
 
     Deploy to your pi with:
         npm run deploy:pi
+
+

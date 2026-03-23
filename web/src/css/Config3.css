@@ -1,0 +1,396 @@
+/* --- 1. OVERLAY & WRAPPER --- */
+.config-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  
+  display: flex;
+  /* 1. Center horizontally relative to the remaining space */
+  justify-content: center; 
+  
+  /* 2. Start from the top but allow a gap */
+  align-items: flex-start; 
+  
+  /* 3. The Sidebar Clearance */
+  /* padding-left: 40px;  */
+  
+  /* 4. The Minimum Gap from Top */
+  padding-top: 40px; 
+  /* Also add padding-bottom to ensure it doesn't hit the floor on small screens */
+  padding-bottom: 40px;
+
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+  cursor: pointer; /* Shows the pointer on the background */
+}
+
+.iphone-container {
+  width: 350px;
+  /* height: 88vh; */
+  background: #090a0f;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+}
+
+.config-content {
+  padding: 5px 5px 0px 5px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+/* --- 2. HEADERS & BADGES --- */
+.config-header { margin-bottom: 15px; padding: 0 4px; }
+.header-top-row { display: flex; justify-content: space-between; align-items: center; }
+.header-bottom-row { display: flex; justify-content: left; align-items: center; margin-top: 8px; }
+
+.main-title { color: #ffffff !important; font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; margin: 0; }
+.subtitle { color: rgba(255, 255, 255, 0.4) !important; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.fleet-badge { background: #03a9f4; color: #fff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px; }
+
+.sync-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #03a9f4;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+/* --- 3. THE DEVICE ROW (THE FIX) --- */
+.device-row-split {
+    position:relative;
+    touch-action: none;   /* Tell the browser JS is handling this */
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    /* Key for centering columns */
+    padding: 5px 8px 5px 5px;
+    /*t r b l*/
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    min-height: 80px;
+    /* margin-bottom: 20px; */
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    will-change: transform; /* Tells the browser to prepare for movement */
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.device-inputs {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    align-items: flex-end;
+    /* Aligns both inputs to the bottom */
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Both groups share the 50/50 split */
+  min-width: 0;
+}
+.tiny-header {
+  font-size: 8px;
+  font-weight: 900;
+  color: #03a9f4; /* Match your primary theme color */
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+  margin-left: 5px;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+/* --- Input Refinement --- */
+.device-inputs .row-name-input {
+  width: 100%;
+  font-size: 0.95rem !important; /* Slightly smaller to fit the headers */
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.15) !important;
+}
+/* Ensure the status row stays tucked underneath */
+.status-inline-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;    /* Keeps Wifi Icon, Pipe, and Text on one level */
+  gap: 8px;               /* Consistent spacing between elements */
+  margin-top: 8px;        /* Gap from the inputs above */
+  padding-left: 2px;      /* Slight offset to align with inputs */
+}
+.row-offline { border-color: rgba(255, 77, 77, 0.2); }
+
+/* --- COLUMNS --- */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-right: 14px;
+  gap: 5px;
+  
+}
+
+.middle-column {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0; /* CRITICAL: prevents inputs from pushing row wider than phone */
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-left: 12px;
+  /* min-width: 100px; */
+}
+
+/* --- ELEMENTS WITHIN ROWS --- */
+.vis-toggle-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  cursor: pointer;
+}
+
+
+.row-name-input {
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+  /* padding: 0 !important; */
+  padding:5px;
+  width: 100%;
+}
+/* Typography Overrides */
+.main-title { color: #ffffff !important; font-size: 1.5rem; font-weight: 800; }
+.subtitle { color: rgba(255,255,255,0.4) !important; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.input-label { 
+  display: inline-block; /* OR display: inline-block; */
+  color: #03a9f4 !important; 
+  font-size: 10px; 
+  font-weight: 800; 
+  text-transform: uppercase; 
+  margin-right: 5px; 
+  margin-bottom: 5px; /* This will now work! */
+}
+/* --- The Status Row Container --- */
+/* .status-inline-row svg {
+  opacity: 0.8;
+  display: block;
+} */
+/* --- Text Styling --- */
+.sub-data-text {
+  color: rgba(255, 255, 255, 0.4); /* Muted white so it doesn't fight the titles */
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* --- The IP Address (Monospace) --- */
+.sub-data-text.font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: rgba(255, 255, 255, 0.3); /* Slightly darker for technical data */
+  letter-spacing: -0.02em;
+}
+
+/* --- The Visual Divider (|) --- */
+.sub-data-divider {
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+  font-weight: 300;
+}
+
+/* --- The Version Tag --- */
+.version-tag {
+  font-size: 9px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.05);
+  color: #03a8f4b9; /* Theme color highlight */
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  border: 1px solid rgba(3, 169, 244, 0.2);
+  margin-left: auto; /* Pushes the version to the far right of the middle column */
+}
+
+/* --- ACTION BUTTONS --- */
+.drag-handle-corner {
+  /* 1. Make it wider */
+  width: 40px; 
+  height: 24px;
+  
+  /* 2. Style as a recessed pill */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  
+  /* 3. Center the icon inside the wider area */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* 4. Position adjustments */
+  margin-top: -6px;
+  margin-right: -8px;
+  cursor: grab;
+  transition: background 0.2s, border-color 0.2s;
+  /* Forces the browser to hand over ALL control to JS */
+    touch-action: none !important; 
+    
+    /* Prevents the 'magnifying glass' or text selection on long-press */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none; 
+    user-select: none;
+}
+.device-row-split.dragging {
+    z-index: 9999 !important;
+    opacity: 1;
+    scale: 1.02;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    background: #1a1c23; /* Solid background during drag */
+    border-color: #03a9f4;
+}
+
+/* Optional: change the cursor on the whole row when dragging starts */
+.device-list {
+    user-select: none; /* Prevents text selection while dragging */
+}
+.drag-handle-corner:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.drag-handle-corner:active {
+  cursor: grabbing;
+  background: rgba(3, 169, 244, 0.2); /* Subtle blue glow when holding */
+}
+
+/* Color the icon inside */
+.drag-handle-corner svg {
+  color: rgba(255, 255, 255, 0.2);
+  width: 20px; /* Slightly larger icon for the wider handle */
+}
+
+.action-cluster { display: flex; gap: 8px; margin-bottom: -2px; margin-right: -4px; }
+
+.action-chip-v2 {
+  background: #16181d;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #03a9f4;
+  /* color:red; */
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.ota-chip:hover { background: #03a9f4; color: #fff; }
+.delete-chip { color: #ff4d4d; border-color: rgba(255, 77, 77, 0.2); }
+.delete-chip:hover { background: #ff4d4d; color: #fff; }
+
+.chip-disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
+
+/* --- 4. PANELS & INPUTS --- */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.infrastructure-section {
+  display: flex;
+  flex-direction: row; /* Force side-by-side */
+  align-items: center; /* Vertical center alignment */
+  gap: 12px;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+}
+
+.infrastructure-section .input-label {
+  display: inline-block; /* Change from block to allow side-by-side */
+  margin-bottom: 0;      /* Remove the bottom margin since they are now rows */
+  white-space: nowrap;   /* Prevent "Home Assistant" from wrapping */
+  min-width: fit-content;
+}
+
+.infrastructure-section .ha-host-input {
+  flex-grow: 1;          /* This forces the input to take up all remaining space */
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #fff;
+}
+.add-node-section { margin-bottom: 20px; border-top: 1px solid rgba(3, 169, 244, 0.2); }
+
+.clean-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff !important;
+  padding: 5px;
+  border-radius: 8px;
+  /* width: 100%; */
+}
+.clean-input:focus { border-color: #03a9f4; outline: none; }
+
+.add-node-inputs { display: flex; flex-direction: column; gap: 10px; }
+.add-node-row { display: flex; gap: 10px; }
+.flex-grow-input { flex-grow: 1; }
+
+.add-btn-main {
+  background: #03a9f4;
+  color: #fff;
+  border-radius: 12px;
+  padding: 0 10px;
+  box-shadow: 0 4px 15px rgba(3, 169, 244, 0.3);
+  cursor: pointer;
+}
+
+/* --- 5. OVERLAYS --- */
+.close-btn-top {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #ff4d4d;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.ota-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  cursor: pointer;
+}
+
+.editable-field {
+  cursor: pointer;
+}
+/* --- HELPER COLORS --- */
+.text-blue { color: #03a9f4; }
+.text-muted { color: #444; }

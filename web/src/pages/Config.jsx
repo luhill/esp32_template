@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useESPContext } from '../contexts/ESPContext';
 import { Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Cpu, FolderArchive, PlusCircle, XCircleIcon, RotateCw } from 'lucide-react';
 import Upload from '../components/Upload'; // Ensure Upload is imported
-import WifiStatusIcon from "../components/WifiStatusIcon"; // Ensure this is imported
+import WifiStatusIcon from "../helpers/WifiStatusIcon"; // Ensure this is imported
 import '../css/Config.css';
 
 const Config = ({onClose}) => {
@@ -173,4 +173,4 @@ const Config = ({onClose}) => {
   );
 };
 
-export default Config;
+export default Config2;

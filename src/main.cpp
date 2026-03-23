@@ -43,8 +43,8 @@ JsonDocument jsonReply;
 Preferences preferences;
 std::vector<ControlBase*> uiRegistry;
 
-#define NAME "Test2"
-#define NAME_HOST "test2"
+#define NAME "Test"
+#define NAME_HOST "test1"
 #define FIRMWARE_VERSION "v1.0.3"
 bool flag_update_ui = false;
 //------------------------------Modules-----------------------------------------//

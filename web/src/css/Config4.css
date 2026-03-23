@@ -1,0 +1,399 @@
+/* --- 1. OVERLAY & CONTAINER --- */
+.config-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 40px;
+    background: rgba(0, 0, 0, 0.2);
+    /* Slightly darker for better focus */
+    backdrop-filter: blur(2px);
+}
+
+.iphone-container {
+    width: 350px;
+    max-height: 90vh;
+    background: #090a0f;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    /* More rounded 'iPhone' feel */
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+.config-content {
+    padding: 5px 5px 0px 5px;
+    overflow-y: auto;
+    flex-grow: 1;
+    -webkit-overflow-scrolling: touch;
+    /* Smooth iOS scroll */
+}
+
+/* --- 2. HEADERS --- */
+.config-header {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 5px;
+}
+
+.main-title {
+    color: #fff;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.subtitle {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 5px;
+}
+
+.sync-btn {
+    background: rgba(3, 169, 244, 0.1);
+    border: 1px solid rgba(3, 169, 244, 0.2);
+    color: #03a9f4;
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* --- 3. SORTABLEJS LIST & ROWS --- */
+.device-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.device-row-split {
+    display: flex;
+    /* grid-template-columns: auto 1fr auto; */
+    align-items: center;
+    /* width: 100%; */
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 5px 8px 5px 5px;
+    min-height: 80px;
+    position: relative;
+    touch-action: manipulation;
+    /* Essential for mobile taps */
+    user-select: none;
+}
+
+/* SortableJS States */
+.sortable-ghost {
+    /* Make the container a ghost */
+    background: transparent !important;
+    border: 2px dashed rgba(255, 255, 255, 0.3) !important;
+    border-radius: 12px;
+    
+    /* Remove the default background/shadows of your row */
+    box-shadow: none !important;
+    outline: none !important;
+    
+    /* Ensure it keeps its height so the list doesn't collapse */
+    visibility: visible !important;
+}
+.sortable-ghost * {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    background: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.sortable-fallback {
+    opacity: 1 !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    pointer-events: none; /* Prevents the clone from interfering with hover targets */
+    z-index: 9999;
+    /* Remove the 'rotate' lock and let it move, but we constrain the container */
+}
+/* 4. The "Drag" (The item attached to your mouse) */
+.sortable-drag {
+    background: #1a1a1a !important; /* Solid dark background */
+    border: 1px solid #444 !important;
+    border-radius: 12px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6) !important;
+    opacity: 1 !important;
+    
+    /* Rail Lock: Force it to stay centered horizontally */
+    /* left: 0 !important; */
+    /* width: 100% !important; */
+    
+    /* Subtle "Lift" effect */
+    /* transform: scale(1.03) !important; */
+}
+
+.row-offline {
+    border-color: rgba(255, 77, 77, 0.2);
+}
+
+/* --- 4. COLUMNS & LAYOUT --- */
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 12px;
+}
+
+/* --- THE OVERLAP FIX --- */
+.middle-column {
+    flex: 1;
+    min-width: 0;
+    /* CRITICAL: Allows flex children to shrink below their content size */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* --- RIGHT COLUMN PADDING --- */
+.right-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-left: 10px;
+    gap: 10px;
+    /* Added more breathing room */
+    flex-shrink: 0;
+    /* Prevents the buttons from getting squashed */
+}
+
+/* --- 5. INPUTS & TEXT --- */
+.device-inputs {
+    display: flex;
+    gap: 5px;
+    width: 100%;
+    align-items: flex-end;
+}
+
+.input-group {
+    flex: 1;
+    /* Gives both inputs equal 50/50 width */
+    min-width: 0;
+    /* Allows the group to shrink */
+    display: flex;
+    flex-direction: column;
+}
+
+.tiny-header {
+    font-size: 8px;
+    font-weight: 900;
+    color: #03a9f4;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.row-name-input {
+    width: 100%;
+    /* Now stays within the 50% allotted by flex: 1 */
+    font-weight: 700;
+    color: #fff;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    text-overflow: ellipsis;
+    /* Optional: adds '...' if text is too long */
+    box-sizing: border-box;
+}
+
+/* .row-name-input, 
+.clean-input.row-name-input {
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+} */
+.status-inline-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+}
+
+.sub-data-text {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+}
+
+.version-tag {
+    background: rgba(3, 169, 244, 0.1);
+    color: #03a9f4;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* --- 6. INTERACTIVE ELEMENTS --- */
+.drag-handle-corner {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none !important;
+    /* CRITICAL: Hands off to SortableJS */
+}
+
+.drag-handle-corner svg {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.action-chip-v2 {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #03a9f4;
+    padding: 8px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.vis-toggle-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.delete-chip {
+    color: #ff4d4d;
+    border-color: rgba(255, 77, 77, 0.2);
+}
+
+.chip-disabled {
+    opacity: 0.2;
+    filter: grayscale(1);
+    cursor: not-allowed;
+}
+
+/* --- 7. PANELS --- */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.add-node-section {
+    margin-bottom: 20px;
+    padding: 10px;
+    border-top: 1px solid rgba(3, 169, 244, 0.3);
+}
+
+.add-node-grid {
+    display: grid;
+    /* 1fr 1fr 1fr = 3 equal columns, 'auto' = the button's width */
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 5px;
+    align-items: center;
+    width: 100%;
+}
+
+/* The container flash */
+.add-node-grid.success-flash .clean-input {
+    border-color: #4caf50 !important;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
+    transition: all 0.2s ease;
+}
+
+/* Optional: The button also turns green */
+.add-node-grid.success-flash .add-btn-main {
+    background: #4caf50 !important;
+    transform: scale(0.95);
+}
+
+.add-node-grid .clean-input {
+    width: 100%;
+    box-sizing: border-box;
+    /* Crucial for equal widths */
+    font-size: 12px;
+    padding: 10px 8px;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.add-btn-main {
+    background: #03a9f4;
+    color: #fff;
+    border: none;
+    height: 38px;
+    /* Matches input height */
+    width: 44px;
+    /* Fixed width for the icon */
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-btn-main:hover {
+    background: #0288d1;
+}
+
+.add-btn-main:active {
+    transform: scale(0.95);
+}
+
+/* --- FIXED INPUT LABEL --- */
+.input-label {
+    display: block;
+    /* Ensure it stays above the inputs */
+    color: #03a9f4 !important;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.clean-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* --- 8. UTILS --- */
+.close-btn-top {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    color: #ff4d4d;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.close-btn-top:hover {
+    color: #ff4d4d;
+}
+
+.text-blue {
+    color: #03a9f4;
+}
+
+.text-muted {
+    color: rgba(255, 255, 255, 0.2);
+}

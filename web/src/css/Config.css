@@ -24,7 +24,7 @@
 .hardware-grid {
   display: grid;
   /* Use minmax(0, 1fr) to force inputs to shrink rather than overlap */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) 40px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
   gap: 5px;
   align-items: center;
   margin-bottom: 6px;
@@ -107,9 +107,15 @@
   flex-direction: column;
   gap: 2px;
 }
-
+.status-inline-row{
+  margin-top: 8px;
+  font-size: 0.8rem;
+}
+.sub-data-text{
+  font-size: 0.8rem;
+}
 .version-tag {
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   font-family: monospace;
   background: rgba(255, 255, 255, 0.1);
   color: var(--color-accent);

@@ -78,10 +78,6 @@ void MyWiFi_socket::start_wifi() {
         // Start asynchronous time synchronization
         syncTimeWithNTP();//Fetch the current date and time
     }
-    
-    // server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
-    //     request->send(LittleFS, "/favicon.ico", "image/x-icon");
-    // });
 
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
     //server.serveStatic("/local", LittleFS, "/").setDefaultFile("index.html");

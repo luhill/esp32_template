@@ -1,0 +1,51 @@
+
+Steps to install Home Assistant and also a seperate front end for esp devices
+
+-Install Home Asistant via the pi imager
+-Boot the pi (ethernet for first boot recommended)
+-The first boot handles partition resizing and downloading the latest Home Assistant core. On a Pi 3, this can take 10 to 20 minutes. The red power LED should be solid, and the green activity LED should be flickering.
+-Install Samba Share (helps move front end web files to the pi) Settings -> Apps -> App Store.
+-Configure Samba with the desired name and password, enable mac compatability if required, enable watchdog. Find the tiny start button on the info page and start it.
+-Connect finder to Samba
+    -Open Finder -> Go -> Connect to Server -> smb://homeassistant.local
+    -Enter the user name and password you created
+    -Command select multiple folders: config, share, media
+-Create a folder called www inside the config folder that was just exposed through Samba
+-The pi needs to reboot now.
+-Install Nginx Proxy Manager (Settings -> Apps -> App Store)
+-Open the Nginx web ui. First time user name and password is listed in the Nginx documentation page
+-Click hosts -> Proxy Hosts -> Add Proxy Host
+    -Domain name homeassistant.local (or the hostname of your pi)
+    -Forward Hostname: homeassistant
+    -Forward Port 8123
+    -Enable the Websockets Support
+    -Go to Custom Locations Tab
+        -location: /
+        -forward hostname: homeassistant
+        -forward port: 8123
+        -Click gear icon and add the text below the field then save (this enables our hosted front end to be accessed via yourhostname.local)
+
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+                # Websocket support
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+
+                # Your ESP-UI Magic
+                rewrite ^/$ /index.html last;
+                rewrite ^/(.*)$ /local/esp-ui/$1 break;
+
+-Open Samba share in finder -> config -> configuration.yaml (open in text edit)
+    - Past the following at the bottom of the file then save (this lets pi access the short hostname we just created in Nginx)
+            http:
+            use_x_forwarded_for: true
+            trusted_proxies:
+            - 172.30.33.0/24  # Cloudflared Add-on range
+            - 172.30.32.0/24  # Nginx Proxy Manager range
+            - 127.0.0.1       # Localhost
+
+-Restart the homeassistant (Settings -> System -> Power Icon (top right))
+-Install cloudflare
+    likely need to add an app store repository using the ... icon in the upper right. Add https://github.com/brenner-tobias/ha-addons

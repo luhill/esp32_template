@@ -23,48 +23,71 @@ const DevPulseHelper = () => {
     const [showPanel, setShowPanel] = useState(true);
 
     // --- EFFECT 1: HEARTBEAT SIMULATOR (Every 2s) ---
-useEffect(() => {
-    if (!isRunning || !import.meta.env.DEV) return;
+    useEffect(() => {
+        if (!isRunning || !import.meta.env.DEV) return;
 
-    const heartbeatInterval = setInterval(() => {
-        setDevices(prev => {
-            const next = { ...prev };
-            let changed = false;
-            masterList.forEach(dev => {
-                if (dev.visible && prev[dev.host]?.connection === 'connected') {
-                    next[dev.host] = {
-                        ...prev[dev.host],
-                        lastUpdate: Date.now(),
-                        status: 'loaded'
-                    };
-                    changed = true;
-                }
+        const heartbeatInterval = setInterval(() => {
+            setDevices(prev => {
+                const next = { ...prev };
+                let changed = false;
+                masterList.forEach(dev => {
+                    // Only pulse devices that are visible and marked connected
+                    if (dev.visible && prev[dev.host]?.connection === 'connected') {
+                        next[dev.host] = {
+                            ...prev[dev.host],
+                            lastUpdate: Date.now(),
+                            status: 'loaded'
+                        };
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
             });
-            return changed ? next : prev;
-        });
-    }, 2000);
+        }, 2000);
 
-    return () => clearInterval(heartbeatInterval);
-}, [isRunning, masterList, setDevices]); // Removed 'devices' dependency
+        return () => clearInterval(heartbeatInterval);
+    }, [isRunning, masterList, setDevices]);
 
-// --- EFFECT 2: CONTROL RIPPLE SIMULATOR (Every 4s) ---
-useEffect(() => {
-    if (!isRunning || !import.meta.env.DEV) return;
+    // --- EFFECT 2: CONTROL RIPPLE SIMULATOR (Every 4s) ---
+    useEffect(() => {
+        if (!isRunning || !import.meta.env.DEV) return;
 
-    const rippleInterval = setInterval(() => {
-        const activeHosts = masterList.filter(d => d.visible && devices[d.host]?.connection === 'connected');
-        if (activeHosts.length === 0) return;
+        const rippleInterval = setInterval(() => {
+            // Find hosts that are actually "online" in the simulator
+            const activeHosts = masterList.filter(d => 
+                d.visible && devices[d.host]?.connection === 'connected'
+            );
+            
+            if (activeHosts.length === 0) return;
 
-        const testIds = ['led', 'pump'];
-        const randomId = testIds[Math.floor(Math.random() * testIds.length)];
-        
-        console.log("🚀 Dev Mode: Pulsing control ->", randomId);
-        setPulseData({ ids:[randomId], ts: Date.now() });
-        setTimeout(() => setPulseData({ ids: [], ts: 0 }), 400);
-    }, 1000);
+            // Pick a random host from the active ones
+            const randomHost = activeHosts[Math.floor(Math.random() * activeHosts.length)].host;
+            
+            // Pick a random ID (matching common keys in your dummy data)
+            const testIds = ['led', 'pump', 'relay1', 'temp'];
+            const randomId = testIds[Math.floor(Math.random() * testIds.length)];
+            
+            console.log(`🚀 Dev Mode: Pulsing [${randomHost}] -> ${randomId}`);
 
-    return () => clearInterval(rippleInterval);
-}, [isRunning, masterList, devices, setPulseData]); // Keep 'devices' here to check connection
+            // UPDATED: Use the new Host-Aware object structure
+            setPulseData(prev => ({
+                ...prev,
+                [randomHost]: { id: randomId, ts: Date.now() }
+            }));
+
+            // Optional: Clear the pulse after 600ms (matches CSS animation duration)
+            setTimeout(() => {
+                setPulseData(prev => {
+                    const next = { ...prev };
+                    delete next[randomHost];
+                    return next;
+                });
+            }, 600);
+            
+        }, 600); // 4 seconds is plenty for a background "live" feel
+
+        return () => clearInterval(rippleInterval);
+    }, [isRunning, masterList, devices, setPulseData]);
 
     // --- HELPER: Force all visible devices Online ---
     const forceAllOnline = () => {
@@ -73,17 +96,19 @@ useEffect(() => {
             masterList.forEach(dev => {
                 if (dev.visible) {
                     next[dev.host] = {
+                        ...prev[dev.host],
                         connection: 'connected',
                         lastUpdate: Date.now(),
                         status: 'loaded',
                         name: dev.name,
-                        // Dummy data structures for simulation
+                        info: { ver: "v1.0.4-DEV", ip: "192.168.1.10" },
+                        // Simulate common control groups
                         home: {
-                            power: { type: 'toggle', value: false },
-                            temp: { type: 'slider', value: 38 }
+                            led: { type: 'switch', value: false, label: 'LED' },
+                            temp: { type: 'slider', value: 22, label: 'Threshold' }
                         },
                         settings: {
-                            brightness: { type: 'slider', value: 50 }
+                            pump: { type: 'switch', value: true, label: 'Water Pump' }
                         }
                     };
                 }
@@ -92,7 +117,6 @@ useEffect(() => {
         });
     };
 
-    // Tree-shake this whole component out of production builds
     if (!import.meta.env.DEV) return null;
 
     return (

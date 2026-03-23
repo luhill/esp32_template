@@ -4,137 +4,47 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 const ESPContext = createContext();
 
 const ESPProvider = ({ children }) => {
+    const isDev = import.meta.env.DEV;
+    const isESP32 = import.meta.env.VITE_PLATFORM === 'ESP32';
+    const [isInitialized, setIsInitialized] = useState(false); // Make sure this is exported
+    // --- 1. STATE & PERSISTENCE ---
+    const [globalSettings, setGlobalSettings] = useState(() => {
+        const saved = localStorage.getItem("global_settings");
+        return saved ? JSON.parse(saved) : { haHost: '' };
+    });
 
-    const [isInitialized, setIsInitialized] = useState(false);
     const [masterList, setMasterList] = useState(() => {
         const saved = localStorage.getItem("esp_fleet_config");
         let list = saved ? JSON.parse(saved) : [];
-
-        // 1. DETECT THE CURRENT HOST (e.g., "test2.local" or "10.0.0.184")
-        const currentHost = window.location.hostname.replace('.local', '');
-
-        // 2. IGNORE "localhost" or "127.0.0.1" (Dev Machine)
-        const isRealHardware = currentHost !== 'localhost' && currentHost !== '127.0.0.1';
-
-        if (isRealHardware && list.length === 0) {
-            //const exists = list.find(d => d.host === currentHost);
-
-            //if (!exists) {
-                console.log(`🆕 New Device Detected: Auto-registering ${currentHost}`);
-                list.push({
-                    host: currentHost,
-                    name: currentHost,  // Default name
-                    tab: currentHost,   // Default tab = Host name
-                    remote: "",
-                    visible: true
-                });
-            //}
-        } else if (list.length === 0) {
-            console.log("🛠️ Dev Mode: Injecting Mock Device");
-            list.push({
-                host: "test", name: "Test", tab: "Test", remote: "", visible: true
-            });
+        if (list.length === 0 && isESP32) {
+            const currentHost = window.location.hostname.replace('.local', '');
+            list.push({ host: currentHost, name: currentHost, tab: 'General', visible: true });
         }
-
         return list;
     });
 
-    // Sync to LocalStorage on every change
-    useEffect(() => {
-        // 1. Persist the current list to storage
-        localStorage.setItem("esp_fleet_config", JSON.stringify(masterList));
+    // devices state stores the dynamic data (IP, Version, Controls)
+    const [devices, setDevices] = useState({});
 
-        // 2. Only mark as initialized if we actually have a list to work with
-        // This "holds" the redirect until the fleet is ready.
-        if (masterList && masterList.length > 0) {
-            setIsInitialized(true);
-        }
-    }, [masterList]); 
-    // 1. FILTER: Only devices marked 'visible: true' are in the active DEVICE_LIST
-    const DEVICE_LIST = masterList.filter(d => d.visible);
-    // Group visible devices by their 'tab' property
-    const TABS = useMemo(() => {
-        const groups = {};
-        masterList.filter(d => d.visible).forEach(device => {
-            const tabName = device.tab || "General";
-            if (!groups[tabName]) groups[tabName] = { name: tabName, devices: [] };
-            groups[tabName].devices.push(device);
-        });
-        return Object.values(groups);
-    }, [masterList]);
+    // pulseData tracks { [host]: { id: 'control_id', ts: Date.now() } }
+    const [pulseData, setPulseData] = useState({});
 
-
-
-    // 3. Reordering Logic
-    const moveDevice = (host, direction) => {
-        setMasterList(prev => {
-            const index = prev.findIndex(d => d.host === host);
-            if (index < 0) return prev;
-            const next = [...prev];
-            const newIndex = index + direction;
-            if (newIndex >= 0 && newIndex < next.length) {
-                [next[index], next[newIndex]] = [next[newIndex], next[index]];
-            }
-            return next;
-        });
-    };
-    // 2. CRUD Functions for the UI
-    const addDevice = (newDevice) => {
-        if (!newDevice.host) return;
-        setMasterList(prev => [...prev, {
-            ...newDevice,
-            tab: newDevice.tab || "General", // Default if empty
-            visible: true
-        }]);
-    };
-    const deleteDevice = (host) => {
-        setMasterList(prev => prev.filter(d => d.host !== host));
-    };
-    const toggleDeviceVisibility = useCallback((host) => {
-        setMasterList(prev => {
-            const newList = prev.map(d => d.host === host ? { ...d, visible: !d.visible } : d);
-            return newList;
-        });
-    }, []);
-    const updateDeviceConfig = (oldHost, newData) => {
-        setMasterList(prev => prev.map(device => {
-            if (device.host === oldHost) {
-                // 💡 THE FIX: Only spread the NEW data onto the OLD device.
-                // If newData is { name: "New Name" }, it won't touch the 'host' key.
-                return { ...device, ...newData };
-            }
-            return device;
-        }));
-    };
-    // Initialise state with these defaults
-    const [devices, setDevices] = useState(() => {
-        const initial = {};
-        DEVICE_LIST.forEach(d => {
-            initial[d.host] = { ...d, status: "loading", connection: "disconnected" };
-        });
-        return initial;
-    });
-    
-    // 2. Aggregate Status Function (Returns 'online', 'partial', or 'offline')
-    const getTabStatus = useCallback((tabName) => {
-        const tab = TABS.find(t => t.name === tabName);
-        if (!tab) return 'offline';
-
-        const statuses = tab.devices.map(d => devices[d.host]?.connection || 'disconnected');
-
-        const allConnected = statuses.every(s => s === 'connected');
-        const someConnected = statuses.some(s => s === 'connected');
-
-        if (allConnected) return 'online';   // All Green
-        if (someConnected) return 'partial';  // Yellow (Mixed)
-        return 'offline';                     // All Red
-    }, [TABS, devices]);
-
+    // --- 2. REFS ---
     const sockets = useRef({});
-    // --- FIX: Store multiple watchdogs, one per deviceId ---
     const watchdogs = useRef({});
-    const isDev = import.meta.env.DEV;
-
+    const lockedControls = useRef({});
+    const setControlLock = useCallback((id, isLocked) => {
+        if (isLocked) {
+            lockedControls.current[id] = true;
+        } else {
+            // Use a small delay before unlocking to catch any "stale" 
+            // messages still in the WebSocket buffer
+            setTimeout(() => {
+                delete lockedControls.current[id];
+            }, 100);
+        }
+    }, []);
+    // --- 3. CONNECTION HELPERS ---
     const stopWatchdog = useCallback((host) => {
         if (watchdogs.current[host]) {
             clearTimeout(watchdogs.current[host]);
@@ -144,46 +54,44 @@ const ESPProvider = ({ children }) => {
 
     const startWatchdog = useCallback((host, isInitial = false) => {
         stopWatchdog(host);
-        const timeout = isInitial ? 10000 : 5000;
         watchdogs.current[host] = setTimeout(() => {
-            console.warn(`Watchdog: Heartbeat lost for ${host}`);
+            console.warn(`Watchdog: Lost ${host}`);
             setDevices(prev => ({
                 ...prev,
                 [host]: { ...prev[host], connection: "disconnected" }
             }));
             sockets.current[host]?.close();
-        }, timeout);
+        }, isInitial ? 10000 : 5000);
     }, [stopWatchdog]);
 
     const sendMessage = useCallback((host, id, value) => {
         if (isDev) {
-            // --- EMULATE ESP32 MESSAGE ---
-            const payload = { [id]: value };
-            console.log(
-                `%c[OUTGOING to ${host.toUpperCase()}] %c${JSON.stringify(payload)}`,
-                "color: #007bff; font-weight: bold;", // Blue for "Outgoing"
-                "color: #28a745; font-weight: normal;" // Green for the JSON
-            );
+            console.log(`%c[OUTGOING to ${host}] %c${id}: ${JSON.stringify(value)}`, "color: #007bff", "color: #28a745");
             return;
         }
-
         const ws = sockets.current[host];
         if (ws?.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ [id]: value }));
         }
     }, [isDev]);
 
+    // --- 4. CORE LOGIC ---
     const updateEspControl = useCallback((host, idToUpdate, newValueOrObject, updateHost = true) => {
         setDevices(prev => {
             const device = prev[host];
             if (!device || device.status !== "loaded") return prev;
 
-            // Find group logic (Home, Settings, etc)
             const groupName = Object.keys(device).find(group =>
                 device[group] && typeof device[group] === 'object' && device[group][idToUpdate]
             );
 
             if (!groupName) return prev;
+
+            // Trigger Pulse Animation for this specific host and ID
+            setPulseData(prevPulse => ({
+                ...prevPulse,
+                [host]: { id: idToUpdate, ts: Date.now() }
+            }));
 
             const currentControl = device[groupName][idToUpdate];
             const isObjectMerge = typeof newValueOrObject === 'object' &&
@@ -209,197 +117,222 @@ const ESPProvider = ({ children }) => {
         if (updateHost) sendMessage(host, idToUpdate, newValueOrObject);
     }, [sendMessage]);
 
-    const [pulseData, setPulseData] = useState({ ids: [], ts: 0 });
-    const lockedControls = useRef({}); // { "pump": true, "led2": true }
-
-        const setControlLock = useCallback((id, isLocked) => {
-            if (isLocked) {
-                lockedControls.current[id] = true;
-            } else {
-                delete lockedControls.current[id];
-            }
-        }, []);
-
     const connectToDevice = useCallback((device) => {
-        // --- FIX: Guard to prevent WebSocket attempts in Dev Mode ---
-        if (isDev) return;
+        if (import.meta.env.DEV) return;
 
-        // --- THE CRITICAL GUARD ---
-        const existingSocket = sockets.current[device.host];
+        const windowHost = window.location.hostname;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = device.host;
+
+        // --- THE CRITICAL GUARD (RE-INSTATED) ---
+        const existingSocket = sockets.current[host];
         if (existingSocket) {
-            // If it's already open or currently trying to connect, DO NOT start a new one.
-            if (existingSocket.readyState === WebSocket.OPEN || existingSocket.readyState === WebSocket.CONNECTING) {
-                console.log(`🔌 Already connecting/connected to ${device.host}, skipping.`);
+            // If it's already working, don't touch it!
+            if (existingSocket.readyState === WebSocket.OPEN) {
+                console.log(`📡 ${host} is already OPEN. Requesting refresh instead.`);
+                existingSocket.send(JSON.stringify({ get: "all" })); // Optional: Sync data
                 return;
             }
+            // If it's currently handshaking, just wait.
+            if (existingSocket.readyState === WebSocket.CONNECTING) {
+                console.log(`⏳ ${host} is already connecting... skipping.`);
+                return;
+            }
+
+            // If it's CLOSED or CLOSING, clean up the dead object before continuing
+            try { existingSocket.close(); } catch (e) { }
+            delete sockets.current[host];
+        }
+        // 1. Determine if we are using the Pi Proxy
+        // (We assume if the URL is your domain and NOT an ESP-specific build, it's the Pi)
+
+        // 2. Format the target address
+        const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host);
+        const target = isIp ? host: `${host}.local`;
+
+        let url;
+        if (isESP32) {
+           // Direct connection (Works for Local Pi or Direct ESP access)
+            url = `${protocol}//${target}/ws`; 
+        } else {
+            // Use the Pi's Nginx Proxy tunnel
+            url = `${protocol}//${windowHost}/esp_proxy/${target}/ws`;
         }
 
-        //const host = isDev ? device.host : device.remote;
-        const host = `${device.host}.local`;
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const url = `${protocol}//${host}/ws`;
-
-        console.log(`Connecting to ${device.host} at ${url}`);
         const ws = new WebSocket(url);
-
+        sockets.current[host] = ws;
         ws.onopen = () => {
             setDevices(prev => ({
                 ...prev,
-                [device.host]: { ...prev[device.host], connection: "connected" /*, name: device.name*/ }
+                [device.host]: { ...prev[device.host], connection: "connected" }
             }));
             startWatchdog(device.host, true);
         };
 
         ws.onmessage = (e) => {
+            // 1. Reset the watchdog immediately
             startWatchdog(device.host);
-            const data = JSON.parse(e.data);
 
-            // 1. SCENARIO A: Full State (Initial/Sync)
-            // If the JSON has the high-level 'home' or 'settings' keys
-            setDevices(prev => ({
-                ...prev,
-                [device.host]: {
-                    ...prev[device.host],
-                    ...data, // Merges top-level keys
-                    lastUpdate: Date.now(),
-                    status: "loaded"
-                }
-            }));
-
-            // --- 2. SCENARIO A: Full State (Initial/Sync) ---
-            // --- 2. SCENARIO A: Full State (Initial/Sync) ---
-            if ("home" in data || "settings" in data || "info" in data) {
-                const allIds = [];
-
-                // Extract IDs from each group to trigger the "ripple" on every control
-                ['home', 'settings', 'info'].forEach(group => {
-                    if (data[group]) {
-                        allIds.push(...Object.keys(data[group]));
-                    }
-                });
-
-                if (allIds.length > 0) {
-                    setPulseData({ ids: allIds, ts: Date.now() });
-                }
-
-                return; // Exit Scenario A
+            let data;
+            try {
+                data = JSON.parse(e.data);
+            } catch (err) {
+                console.error("Malformed WS data:", e.data);
+                return;
             }
 
-            // 2. SCENARIO B: Partial Updates (Reusing updateEspControl)
-            // Loop through flat keys like {"pump": {"on": true}}
-            Object.keys(data).forEach(id => {
-                // A. Trigger the 'Inward Ripple' animation for this specific control
-                setPulseData({ ids: [id], ts: Date.now() });
-                if (lockedControls.current[id]) {
-                    console.log(`🛡️ Collision blocked for: ${id}`);
-                    return;
+            // 2. Handle the "Simple Heartbeat" or specialized signals
+            // If it's just {"h":1}, we just update the timestamp and move on.
+            if (data.h) {
+                setDevices(prev => ({
+                    ...prev,
+                    [device.host]: { ...prev[device.host], lastUpdate: Date.now() }
+                }));
+                return;
+            }
+
+            // 3. Handle Full Config Sync (Initial connection or Refresh)
+            // --- 2. FULL CONFIG SYNC ---
+            if ("home" in data || "settings" in data || "info" in data) {
+                // A. Update Device State
+                setDevices(prev => ({
+                    ...prev,
+                    [device.host]: {
+                        ...prev[device.host],
+                        ...data,
+                        ip: data.info?.ip || prev[device.host]?.ip,
+                        status: "loaded",
+                        lastUpdate: Date.now()
+                    }
+                }));
+
+                // B. MASS PULSE: Extract all control IDs from the sync
+                const allControlIds = [
+                    ...Object.keys(data.home || {}),
+                    ...Object.keys(data.settings || {}),
+                    ...Object.keys(data.info || {})
+                ];
+
+                if (allControlIds.length > 0) {
+                    setPulseData(prev => ({
+                        ...prev,
+                        [device.host]: {
+                            ids: allControlIds, // Note: changed 'id' to 'ids' for mass pulse
+                            ts: Date.now()
+                        }
+                    }));
+
+                    // Auto-clear after animation
+                    setTimeout(() => {
+                        setPulseData(prev => {
+                            const next = { ...prev };
+                            delete next[device.host];
+                            return next;
+                        });
+                    }, 800);
                 }
-            // B. Call the established helper to find the group and patch the state.
-                // IMPORTANT: 'false' as the last argument prevents an infinite loop
-                // (don't send the command back to the hardware that just sent it to us).
-                updateEspControl(device.host, id, data[id], false);
-            });
+            }
+            // 4. Handle Partial Updates (User toggles, sensor changes)
+            else {
+                Object.keys(data).forEach(id => {
+                    // 1. THE SHIELD CHECK
+                    if (lockedControls.current[id]) {
+                        console.log(`🛡️ Shield: Denied hardware override for ${id}. Pulsing instead.`);
+
+                        // Trigger the pulse even though we are rejecting the state change
+                        setPulseData(prev => ({
+                            ...prev,
+                            [device.host]: { id: id, ts: Date.now() } // Use 'id' from the loop
+                        }));
+
+                        return; // Exit here so updateEspControl isn't called
+                    }
+
+                    // 2. NORMAL UPDATE
+                    // If not locked, update the React state with the hardware's value
+                    updateEspControl(device.host, id, data[id], false);
+                });
+
+                // Ensure the device block itself shows a fresh timestamp even for partials
+                setDevices(prev => ({
+                    ...prev,
+                    [device.host]: { ...prev[device.host], lastUpdate: Date.now() }
+                }));
+            }
         };
 
         ws.onclose = () => {
             stopWatchdog(device.host);
             setDevices(prev => ({ ...prev, [device.host]: { ...prev[device.host], connection: "disconnected" } }));
-
-            // Check if THIS specific socket is still the one we care about
-            // If we've already replaced it during a 'wake-up', don't trigger the timeout
             if (sockets.current[device.host] === ws) {
-                console.log(`♻️ Socket for ${device.host} closed, retrying in 3s...`);
                 setTimeout(() => connectToDevice(device), 3000);
             }
         };
-
         sockets.current[device.host] = ws;
-    }, [isDev, startWatchdog, stopWatchdog]);
+    }, [isDev, startWatchdog, stopWatchdog, updateEspControl]);
+
+    // --- 5. EFFECTS ---
+    // Lifecycle: Sync connections with masterList visibility
     useEffect(() => {
-        const wakeUpApp = () => {
-            // Only trigger if we are now visible
-            if (document.visibilityState === 'visible') {
-                console.log("📱 iPhone Wake-up: Resetting connections...");
+        const activeHosts = new Set(masterList.filter(d => d.visible).map(d => d.host));
 
-                masterList.forEach(device => {
-                    const currentSocket = sockets.current[device.host];
-
-                    // 1. Force-close any existing socket to clear 'zombie' states
-                    if (currentSocket) {
-                        currentSocket.onclose = null; // Prevent the old onclose from firing
-                        currentSocket.close();
-                        delete sockets.current[device.host];
-                    }
-
-                    // 2. Immediately attempt a fresh connection
-                    if (device.visible) {
-                        connectToDevice(device);
-                    }
-                });
-            }
-        };
-
-        // Listen for both visibility change AND focus for maximum reliability on iOS
-        document.addEventListener('visibilitychange', wakeUpApp);
-        window.addEventListener('pageshow', wakeUpApp); // Specific for iOS back/forward cache
-        //window.addEventListener('focus', wakeUpApp);
-
-        return () => {
-            document.removeEventListener('visibilitychange', wakeUpApp);
-            window.removeEventListener('pageshow', wakeUpApp);
-            //window.removeEventListener('focus', wakeUpApp);
-        };
-    }, [masterList, connectToDevice]);
-    const visibleHosts = masterList
-        .filter(d => d.visible)
-        .map(d => d.host)
-        .join(',');
-
-    useEffect(() => {
-        if (isDev) return;
-
-        const activeHostsSet = new Set(masterList.filter(d => d.visible).map(d => d.host));
-
-        // 2. CLOSE logic
         Object.keys(sockets.current).forEach(host => {
-            if (!activeHostsSet.has(host)) {
-                const ws = sockets.current[host];
-                if (ws) {
-                    ws.onclose = null;
-                    ws.close();
-                }
+            if (!activeHosts.has(host)) {
+                sockets.current[host].close();
                 delete sockets.current[host];
                 stopWatchdog(host);
             }
         });
 
-        // 3. OPEN logic
         masterList.forEach(device => {
             if (device.visible && !sockets.current[device.host]) {
                 connectToDevice(device);
             }
         });
+    }, [masterList, connectToDevice, stopWatchdog]);
 
-        // Now 'visibleHosts' is in scope and correctly prevents re-runs on slider moves
-    }, [visibleHosts, isDev, connectToDevice, stopWatchdog]);
+    const TABS = useMemo(() => {
+        const groups = {};
+        masterList.filter(d => d.visible).forEach(device => {
+            const tabName = device.tab || "General";
+            if (!groups[tabName]) groups[tabName] = { name: tabName, devices: [] };
+            groups[tabName].devices.push(device);
+        });
+        return Object.values(groups);
+    }, [masterList]);
+    const getTabStatus = useCallback((tabName) => {
+        const tab = TABS.find(t => t.name === tabName);
+        if (!tab) return 'offline';
 
-    // --- Dummy Data Handling ---
+        const statuses = tab.devices.map(d => devices[d.host]?.connection || 'disconnected');
+
+        const allConnected = statuses.every(s => s === 'connected');
+        const someConnected = statuses.some(s => s === 'connected');
+
+        if (allConnected) return 'online';   // All Green
+        if (someConnected) return 'partial';  // Yellow (Mixed)
+        return 'offline';                     // All Red
+    }, [TABS, devices]);
+
+    // --- 6. DEVELOPMENT DUMMY DATA ---
     useEffect(() => {
-        if (!isDev) return;
+        if (!isDev) {
+            // In Production, initialization happens when masterList is loaded
+            if (masterList.length > 0) setIsInitialized(true);
+            return;
+        }
 
         const loadDevData = async () => {
             try {
-                const data = await getDummyData(); // Fetches your dummy JSON
-
+                const data = await getDummyData();
                 setDevices(prev => {
                     const next = { ...prev };
-
-                    // Merge each device from the dummy JSON into the state
-                    Object.keys(data).forEach(id => {
-                        if (next[id]) {
-                            next[id] = {
-                                ...next[id],    // Keep initial DEVICE_LIST properties
-                                ...data[id],    // Overwrite with Dummy JSON (including name)
+                    // Map dummy data to the hosts in your masterList
+                    masterList.forEach(dev => {
+                        if (data[dev.host]) {
+                            next[dev.host] = {
+                                ...dev,
+                                ...data[dev.host],
                                 status: "loaded",
                                 connection: "connected",
                                 lastUpdate: Date.now()
@@ -408,43 +341,72 @@ const ESPProvider = ({ children }) => {
                     });
                     return next;
                 });
+                // CRITICAL: Set initialized to true so the ControlsPage renders
+                setIsInitialized(true);
             } catch (err) {
-                console.error("Dev: Failed to load dummy data", err);
+                console.error("🛠️ Dev Error:", err);
             }
         };
-        loadDevData();
-    }, [isDev]);
 
-    const bulkRefresh = useCallback(() => {
-        console.log("🚀 Sending bulk refresh to all connected devices...");
+        if (masterList.length > 0) loadDevData();
+        else setIsInitialized(true); // Allow empty state to show
+    }, [isDev, masterList]);
+    
+    useEffect(() => {
+        const handleWakeUp = () => {
+            // Only run if the page is actually visible
+            if (document.visibilityState === 'visible') {
+                console.log("📱 App Wake-up: Checking connections...");
 
-        // Iterate through all active WebSocket instances
-        Object.entries(sockets.current).forEach(([host, ws]) => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ cmd: "refresh" }));
+                masterList.forEach(device => {
+                    const ws = sockets.current[device.host];
+
+                    // Case 1: WebSocket exists and is OPEN
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        console.log(`🔄 ${device.host} is alive. Requesting refresh...`);
+                        // Send a 'get' or empty config request to force a state sync
+                        ws.send(JSON.stringify({ cmd: "refresh" }));
+                    }
+                    // Case 2: WebSocket is closed, broken, or missing
+                    else {
+                        console.log(`🔌 ${device.host} connection stale. Reconnecting...`);
+                        // This will trigger your existing connection logic
+                        connectToDevice(device);
+                    }
+                });
             }
-        });
-    }, []);
+        };
 
+        // Listen for tab switching / phone unlocking
+        document.addEventListener('visibilitychange', handleWakeUp);
+        // Listen for window focus (good for desktop returning from other apps)
+        window.addEventListener('focus', handleWakeUp);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleWakeUp);
+            window.removeEventListener('focus', handleWakeUp);
+        };
+    }, [masterList, connectToDevice]);
+    
     const value = {
-        masterList,
-        isInitialized,
-        addDevice,
-        moveDevice,
-        deleteDevice,
-        toggleDeviceVisibility,
-        updateDeviceConfig,
-        devices,
-        DEVICE_LIST,
-        updateEspControl,
-        sendMessage,
+        masterList, setMasterList,
+        devices, setDevices,
+        globalSettings,
+        updateGlobalSettings: (s) => {
+            const updated = { ...globalSettings, ...s };
+            setGlobalSettings(updated);
+            localStorage.setItem("global_settings", JSON.stringify(updated));
+        },
         TABS,
+        isInitialized,
+        pulseData, setPulseData,
+        updateEspControl,
         getTabStatus,
-        bulkRefresh,
-        pulseData,
-        setPulseData,
-        setDevices,
-        setControlLock
+        setControlLock,
+        sendMessage,
+        bulkRefresh: () => {
+            Object.values(sockets.current).forEach(ws => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ cmd: "refresh" })));
+        }
     };
 
     return <ESPContext.Provider value={value}>{children}</ESPContext.Provider>;

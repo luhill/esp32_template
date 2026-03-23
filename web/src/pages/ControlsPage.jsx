@@ -4,7 +4,7 @@ import { useESPContext } from "../contexts/ESPContext";
 import "../css/ControlsPage.css";
 import "../css/Navbar.css";
 import ControlsPanel from "../components/ControlsPanel";
-import WifiStatusIcon from "../components/WifiStatusIcon"; // Ensure this is imported
+import WifiStatusIcon from "../helpers/WifiStatusIcon"; // Ensure this is imported
 
 function ControlsPage({ data_field = "home" }) {
   const { host: tabName } = useParams();
@@ -52,6 +52,7 @@ function ControlsPage({ data_field = "home" }) {
               <WifiStatusIcon live={live} isConnected={isConnected}/>
             </div>
             <ControlsPanel 
+              host={device.host}
               props={{ 
                 controls: live[data_field], 
                 status: live.status || 'waiting' 

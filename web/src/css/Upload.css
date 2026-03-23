@@ -72,12 +72,13 @@
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 16px;
   padding: 24px;
+  cursor: default;
 }
 
 /* Progress Bar */
 .progress-section { margin: 20px 0; }
 .progress-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(157, 157, 157);
   height: 8px;
   border-radius: 4px;
   overflow: hidden;
@@ -88,12 +89,17 @@
   transition: width 0.3s ease;
   box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
 }
+.targetLabel{
+  margin-top: 10px;
+  color:#03a9f4
+}
 .progress-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: 1rem;
   margin-top: 8px;
-  opacity: 0.7;
+  opacity: 1;
+  color: #a2a2a2;
 }
 
 /* Action Cards */
@@ -104,7 +110,7 @@
   margin-top: 10px;
 }
 .update-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(161, 161, 161, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 16px;

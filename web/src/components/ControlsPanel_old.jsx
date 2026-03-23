@@ -12,47 +12,44 @@ import '../css/App.css';
 import "../css/ControlsPanel.css";
 
 import { useESPContext } from '../contexts/ESPContext';
-// --- SUB-COMPONENT: CONTROLROW ---
-const ControlRow = ({ host, id, config, onUpdate, renderControl }) => {
+
+const ControlRow = ({ id, config, onUpdate, pulseData, controlForTool }) => {
     const rowRef = useRef(null);
     const throttleTimer = useRef(null);
     const lastValue = useRef(null);
-    
-    // Grab pulseData and the locking mechanism from Context
-    const { pulseData, setControlLock } = useESPContext();
-    const pulseInfo = pulseData[host];
-    const isPulsing = pulseInfo?.id === id || pulseInfo?.ids?.includes(id);
-    // Host-Aware Pulse Check: Only pulse if THIS host matches the update
-    //const isPulsing = pulseData[host]?.id === id;
-    const pulseTs = pulseData[host]?.ts;
+    const isPulsing = pulseData?.ids?.includes(id);
+
+    const { setControlLock } = useESPContext();
 
     const handleInteraction = (isStarting) => {
-        // Prevent hardware from overwriting local state during interaction
-        setControlLock(id, isStarting); 
+        //setIsInteracting(isStarting);
+        setControlLock(id, isStarting); // Tell the context to ignore hardware for this ID
     };
 
-    // 1. ANIMATION LOGIC
+
+    // 1. ANIMATION LOGIC (Stays the same)
     useEffect(() => {
         if (isPulsing && rowRef.current) {
             rowRef.current.classList.remove('pulse-feedback');
-            // Trigger reflow to restart animation
-            void rowRef.current.offsetWidth; 
+            void rowRef.current.offsetWidth;
             rowRef.current.classList.add('pulse-feedback');
         }
-    }, [isPulsing, pulseTs?.ts]);
+    }, [isPulsing, pulseData.ts]);
 
-    // 2. THROTTLE & OPTIMISTIC UPDATE
+    // 2. GLOBAL THROTTLE & OPTIMISTIC UPDATE
     const throttledUpdate = (newValue) => {
-        // UI Update (Internal state)
+        // 1. Optimistic Update (Always immediate for the UI)
         onUpdate(id, newValue, false);
         lastValue.current = newValue;
 
-        // Leading Edge Send
+        // 2. LEADING EDGE: If no timer is running, send to hardware IMMEDIATELY
         if (!throttleTimer.current) {
             onUpdate(id, newValue, true);
 
+            // Start the lockout timer
             throttleTimer.current = setTimeout(() => {
-                // Trailing Edge Send (Catch the final slider position)
+                // 3. TRAILING EDGE: After 100ms, if the value changed again (like a slider move),
+                // send the final 'resting' value to ensure hardware is in sync.
                 if (lastValue.current !== newValue) {
                     onUpdate(id, lastValue.current, true);
                 }
@@ -64,25 +61,27 @@ const ControlRow = ({ host, id, config, onUpdate, renderControl }) => {
     return (
         <div
             ref={rowRef}
-            className="controlRow"
+            className={`controlRow ${isPulsing ? 'pulse-feedback' : ''}`}
             onMouseDown={() => handleInteraction(true)}
             onMouseUp={() => handleInteraction(false)}
             onTouchStart={() => handleInteraction(true)}
             onTouchEnd={() => handleInteraction(false)}
             onMouseLeave={() => handleInteraction(false)}
         >
-            {renderControl(id, config, throttledUpdate)}
+            {controlForTool(id, config, throttledUpdate)}
         </div>
     );
 };
 
-// --- MAIN COMPONENT ---
-function ControlsPanel({ host, props, onUpdate }) {
-    // Helper to render specific UI components based on type
+function ControlsPanel({ props, onUpdate }) {
+    const { pulseData } = useESPContext();
+
+    // Updated helper to accept the throttled function
     const renderControl = (id, config, throttledOnUpdate) => {
-        const components = {
-            slider: () => <Slider props={config} setValue={throttledOnUpdate} />,
-            switch: () => {
+        switch (config.type) {
+            case "slider":
+                return <Slider props={config} setValue={throttledOnUpdate} />;
+            case "switch": {
                 const hasOnKey = config.value?.on !== undefined;
                 const currentValue = hasOnKey ? config.value.on : config.value;
                 return (
@@ -91,34 +90,39 @@ function ControlsPanel({ host, props, onUpdate }) {
                         setValue={(v) => throttledOnUpdate(hasOnKey ? { on: v } : v)}
                     />
                 );
-            },
-            led: () => <Led props={config} setValue={throttledOnUpdate} />,
-            dateTime: () => <Time props={config} setValue={throttledOnUpdate} />,
-            autoStartStop: () => <Auto props={config} setValue={throttledOnUpdate} />,
-            switchSlider: () => <SwitchSlider props={config} setValue={throttledOnUpdate} />,
-            display: () => <Display props={config} />,
-            button: () => <Button props={config} setValue={throttledOnUpdate} />,
-            list: () => <List props={config} setValue={throttledOnUpdate} />
-        };
-
-        return components[config.type]?.() || <p>Unknown: {id}</p>;
+            }
+            case "led":
+                return <Led props={config} setValue={throttledOnUpdate} />;
+            case "dateTime":
+                return <Time props={config} setValue={throttledOnUpdate} />;
+            case "autoStartStop":
+                return <Auto props={config} setValue={throttledOnUpdate} />;
+            case "switchSlider":
+                return <SwitchSlider props={config} setValue={throttledOnUpdate} />;
+            case "display":
+                return <Display props={config} />;
+            case "button":
+                return <Button props={config} setValue={throttledOnUpdate} />;
+            case "list":
+                return <List props={config} setValue={throttledOnUpdate} />;
+            default:
+                return <p>Unknown Control: {id}</p>;
+        }
     };
 
     return (
         <div className="controlsPanel font-base">
             {props.status !== "loaded" ? (
-                <div className="controlRow">
-                    <p className="status-msg">{props.status}...</p>
-                </div>
+                <div className="controlRow"><p className="status-msg">{props.status}</p></div>
             ) : props.controls && Object.keys(props.controls).length > 0 ? (
                 Object.entries(props.controls).map(([id, config]) => (
                     <ControlRow
-                        key={`${host}-${id}`} // Unique key per host/id pair
-                        host={host}
+                        key={id}
                         id={id}
                         config={config}
                         onUpdate={onUpdate}
-                        renderControl={renderControl}
+                        pulseData={pulseData}
+                        controlForTool={renderControl}
                     />
                 ))
             ) : (
@@ -129,3 +133,4 @@ function ControlsPanel({ host, props, onUpdate }) {
 }
 
 export default ControlsPanel;
+

@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, NavLink } from "react-router-dom";
 import { useESPContext } from "../contexts/ESPContext";
 import { HomeIcon, SettingsIcon, InfoIcon } from "lucide-react";
-import WifiStatusIcon from "../components/WifiStatusIcon"; // Ensure this is imported
+import WifiStatusIcon from "../helpers/WifiStatusIcon"; // Ensure this is imported
 import "../css/Navbar.css";
 
 function NavBar() {

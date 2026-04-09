@@ -1,101 +1,88 @@
 #pragma once
-#include <Control/Control.h>
-#include <ESP32TimerInterrupt.h>
+#include <modules/module_base.h>
 #include <time.h>
-#include <sys/time.h>
-#include <helpers.h>
-// Forward declaration of the global registry
-extern std::vector<ControlBase*> uiRegistry;
 
-// Standard C-style function pointer typedef for ISR-safe callbacks
-typedef void (*VoidCallback)(); 
+class Module_Auto : public Module_Base<Module_Auto> {
+private:
+    VoidCallback _callback_on = nullptr;
+    VoidCallback _callback_off = nullptr;
+    int _initialStart = 0;
+    int _initialStop = 0;
 
-class Module_Auto {
+    int32_t _secToStart = -1;
+    int32_t _secToStop  = -1;
+    bool _isCurrentlyActive = false;
+
 public:
-    MultiControl control;
-    ESP32_ISRTimer* isr_timer = nullptr;
-    
-    // Public Handles and Callbacks
-    int handle_on = -1;
-    int handle_off = -1;
-    VoidCallback callback_on = nullptr;
-    VoidCallback callback_off = nullptr;
-
-    // Public Pointers for high-speed access in main.cpp / ISRs
+    Module_Auto() {_type = "autoStartStop";}
     bool* on = nullptr;
-    int* start = nullptr;
-    int* stop = nullptr;
+    int* start_sec = nullptr;
+    int* stop_sec = nullptr;
 
-    Module_Auto(const char* group, const char* id, const char* name)
-        : control(group, id, "autoStartStop", name) 
-    {
-        // Reserve space to prevent pointer invalidation during addValue
-        control.values.reserve(8);
+    // --- CONFIGURATION CHAIN ---
+
+    Module_Auto& setCallbacks(VoidCallback on_cb, VoidCallback off_cb) {
+        _callback_on = on_cb;
+        _callback_off = off_cb;
+        return *this;
     }
 
-    /**
-     * @param _isr Shared ISR Timer instance (managed in main.cpp)
-     * @param _on Callback for Start time alarm
-     * @param _off Callback for Stop time alarm
-     * @param initialStart Seconds from midnight (e.g. 32400 for 9AM)
-     * @param initialStop Seconds from midnight (e.g. 61200 for 5PM)
-     */
-    void setup(ESP32_ISRTimer* _isr, VoidCallback _on, VoidCallback _off, int _start, int _stop) {
-        isr_timer = _isr;
-        callback_on = _on;
-        callback_off = _off;
-
-        control.addValue("on", false, true);
-        control.addValue("start", _start, true);
-        control.addValue("stop", _stop, true);
-        
-        // 2. Cache Pointers
-        on = control.getBoolPtr("on");
-        start = control.getIntPtr("start");
-        stop = control.getIntPtr("stop");
-
-        control.onUpdate = [this](const char* id, const char* key, JsonVariant val) {
-            this->updateTimers();
-        };
-
-        uiRegistry.push_back(&control);
+    Module_Auto& setInitialTimes(int startSec, int stopSec) {
+        _initialStart = startSec;
+        _initialStop = stopSec;
+        return *this;
     }
-
-    /**
-     * Recalculates next alarm intervals
-     */
-    void updateTimers() {
-        if (!isr_timer || !callback_on || !callback_off || !on || !start || !stop) return;
-
-        time_t now;
-        time(&now);
-        struct tm lTime;
-        localtime_r(&now, &lTime);
-        
+    uint32_t onDurationSec() {
+        return (_initialStop - _initialStart + SEC_PER_DAY)%SEC_PER_DAY;
+    }
+    // --- LOGIC: Recalculate the relative timer ---
+    void syncAlarms() {
+        time_t now; time(&now);
+        struct tm lTime; localtime_r(&now, &lTime);
         int secNow = (lTime.tm_hour * 3600 + lTime.tm_min * 60 + lTime.tm_sec);
-        const int SEC_PER_DAY = 86400;
 
-        int secUntilStart = (*start - secNow + SEC_PER_DAY) % SEC_PER_DAY;
-        int secUntilStop  = (*stop - secNow + SEC_PER_DAY) % SEC_PER_DAY;
+        // Calculate initial distance to both points in the future
+        _secToStart = (*start_sec - secNow + SEC_PER_DAY) % SEC_PER_DAY;
+        _secToStop  = (*stop_sec  - secNow + SEC_PER_DAY) % SEC_PER_DAY;
 
-        debugfln("start in:%i, stop in:%i",secUntilStart,secUntilStop);
+        // If it's 0, it means it's happening right now
+        if (_secToStart <= 0) _secToStart = SEC_PER_DAY;
+        if (_secToStop  <= 0) _secToStop  = SEC_PER_DAY;
+        debugfln("Auto [%s]: State=%s, Next on in %ds, Next off in %ds",_id, _isCurrentlyActive ? "ON" : "OFF", _secToStart, _secToStop);
+    }
 
-        if (secUntilStart == 0) secUntilStart = SEC_PER_DAY;
-        if (secUntilStop == 0) secUntilStop = SEC_PER_DAY;
+    // --- LIFECYCLE ---
+    void setup() override {
+        on        = this->control->addValue("on", false, this->_persist);
+        start_sec = this->control->addValue("start", 0, this->_persist);
+        stop_sec  = this->control->addValue("stop", 0, this->_persist);
+    }
+    bool onUpdate_internal() override {
+        syncAlarms();
+        return true; //true performs any onUpdate function that was set
+    }
+    void onTimeChange() override {
+        syncAlarms(); // Critical: Recalculate if NTP shifts the clock
+    }
 
-        if (handle_on < 0)  handle_on  = isr_timer->setInterval((uint64_t)secUntilStart * 1000ULL, callback_on);
-        else                isr_timer->changeInterval(handle_on, (uint64_t)secUntilStart * 1000ULL);
-        if (handle_off < 0) handle_off = isr_timer->setInterval((uint64_t)secUntilStop * 1000ULL, callback_off);
-        else                isr_timer->changeInterval(handle_off, (uint64_t)secUntilStop * 1000ULL);
+    void tick1s() override {
+        if (!on || !(*on)) return;
 
-        if (*on) {
-            isr_timer->enable(handle_on);
-            isr_timer->enable(handle_off);
-        } else {
-            isr_timer->disable(handle_on);
-            isr_timer->disable(handle_off);
+        _secToStart--;
+        _secToStop--;
+
+        // START Event
+        if (_secToStart <= 0) {
+            if (_callback_on) _callback_on();
+            _secToStart = SEC_PER_DAY; // Reset for tomorrow
+            debugfln("Auto [%s]: Start Triggered", _id);
+        }
+
+        // STOP Event
+        if (_secToStop <= 0) {
+            if (_callback_off) _callback_off();
+            _secToStop = SEC_PER_DAY; // Reset for tomorrow
+            debugfln("Auto [%s]: Stop Triggered", _id);
         }
     }
-
-private: 
 };

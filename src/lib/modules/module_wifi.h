@@ -1,131 +1,160 @@
 #pragma once
-#include <Control/Control.h>
-#include <Wifi_socket/myWifi_socket.h>
-#include <helpers.h>
+#include <module_base.h>
+#include <wifi_socket/wifi_socket.h> // Your renamed class
+#include <nvs_flash.h>
 
-extern JsonDocument jsonMaster;
-extern JsonDocument jsonReply;
-extern std::vector<ControlBase*> uiRegistry;
+#define HAS_WIFI
 
-// Standard ESP32 IP to String helper
-inline String ipToString(IPAddress ip) {
-  return String(ip[0]) + "." + String(ip[1]) + "." + String(ip[2]) + "." + String(ip[3]);
-}
-
-class Module_WiFi {
-public:
-    MultiControl control;
-    MyWiFi_socket* wf = nullptr;
+class Module_WiFi : public Module_Base<Module_WiFi> {
+private:
+    wifi_socket* _socket = nullptr;
+    static Module_WiFi* _instance;
+    // static wifi_socket* _instance;
+    // Configuration stored before .begin()
+    const char* _ssid = "";
+    const char* _pass = "";
+    const char* _hostname = "ESP32-Device";
     
-    // Pointers for the monitor task
-    int* rssi = nullptr;
-    String* ip = nullptr;
+    // Cached pointers for UI
+    int* _rssiPtr = nullptr;
+    String* _ipPtr = nullptr;
+    JsonDocument jsonReply;
+public:
+    Module_WiFi() {_type = "display";}
 
-    Module_WiFi(const char* group, const char* id, const char* name)
-        : control(group, id, "display", name) {
-        control.values.reserve(8);
+    // Singleton Accessor: Allows other modules to reach the socket via Module_WiFi::getSocket()
+    static wifi_socket* getSocket() {
+        return (_instance) ? _instance->_socket: nullptr;
     }
 
-    /**
-     * @param _wf Pointer to the existing WiFi socket instance
-     */
-    void setup(MyWiFi_socket* _wf) {
-        wf = _wf;
+    // --- CONFIGURATION CHAIN ---
 
-        // 1. Setup Values (Read-only, no persist)
-        control.addValue("rssi", 0, false);
-        control.addValue("ip", "0.0.0.0", false);
-        
-        // Add some metadata for your new Display.jsx
-        control.setMeta("append", ""); 
-        control.setMeta("thresholds.rssi", -80); 
-
-        uiRegistry.push_back(&control);
-
-        // 2. Cache Pointers
-        rssi = control.getIntPtr("rssi");
-        ip = control.getStringPtr("ip");
-
-        // 3. Start Connection
-        wf->start_wifi();
-
-        // 4. Start Monitor Task
-        xTaskCreatePinnedToCore(task, "WiFiMon", 4096, this, 1, nullptr, 0);
+    Module_WiFi& setCredentials(const char* ssid, const char* pass, const char* hostname = "ESP32-Device") {
+        _ssid = ssid;
+        _pass = pass;
+        _hostname = hostname;
+        return *this;
     }
+
+    // --- LIFECYCLE ---
+    void tick10s() override {
+        // WiFi monitoring is slow (every 10 seconds)
+
+        if (_socket) {
+            if (_socket->isConnected()) {
+                if (_socket->mdnsStarted == false) {
+                    _socket->startMDNS();
+                }
+                // Update UI Pointers
+                if (_rssiPtr) *_rssiPtr = _socket->getRSSI();
+                if (_ipPtr) *_ipPtr = _socket->getIPAddress();
+                this->control->forceUiUpdate();//by default the ui will only receive an update if one of these values changes. I prefer to see a 10s rssi update regardless of change.
+            } else {
+                // Connection is down!
+                if (_rssiPtr) *_rssiPtr = 0;
+                if (_ipPtr) *_ipPtr = String("DISCONNECTED");
+                // Trigger the smart reconnect
+                _socket->reconnect();
+            }
+        }
+    }
+    void setup() override {
+        // 3. Set the Singleton instance
+        _instance = this;
+
+        // 1. Create the UI Control
+        _rssiPtr = this->control->addValue("rssi", 0, false);
+        _ipPtr = this->control->addValue("ip", "0.0.0.0", false);
+
+        this->control->setMeta("thresholds.rssi", -80);
+
+        // 2. Initialize the internal Socket
+        _socket = new wifi_socket(Module_WiFi::jsonFromWeb, _hostname, _ssid,
+                                  _pass, false);
+        auto timeSyncCallback = [](){
+            //broadcase time change to all modules
+            for (Module* m : Registry::modules) {
+                if (m) {m->onTimeChange();}
+            }
+        };
+        wifi_socket::onTimeSynced = timeSyncCallback;
+    }
+    void onBegin() override {
+        // grab shortcuts from all modules and register them with the socket
+        for (Module* m : Registry::modules) {
+            auto* shortcuts = m->getShortcuts();
+            if (shortcuts) {
+                for (auto const& [url, entry] : *shortcuts) {
+                    debugfln("WiFi: Registering %s -> %s", entry.name.c_str(), url.c_str());
+                    _socket->on(url.c_str(), entry.cb_shortcut);
+                }
+            }
+        }
+        _socket->start();
+    }
+    void clearNVS() {
+        Serial.println("Erasing ALL NVS Partitions...");
+
+        // 1. Release the NVS handle
+        nvs_flash_deinit();
+
+        // 2. Erase the partition labeled "nvs"
+        esp_err_t err = nvs_flash_erase();
+
+        if (err == ESP_OK) {
+            Serial.println("Success! All namespaces and keys are gone.");
+            // 3. Re-initialize so the ESP32 can use it again immediately
+            nvs_flash_init();
+            Serial.println("NVS Re-initialized. Rebooting recommended.");
+            delay(1000);
+            // esp_restart();
+        } else {
+            Serial.printf("Erase failed: %s\n", esp_err_to_name(err));
+        }
+    }
+    // --- CENTRAL JSON PROCESSOR ---
+    // This remains static so the wifi_socket can call it without an instance
     static String jsonFromWeb(char* jsonString) {
-        // 1. Handle "GET" (Initial Load / Browser Refresh)
+        if(!_instance)return "";
+
         if (jsonString == nullptr) {
             String c;
-            serializeJson(jsonMaster, c);
+            serializeJson((*Registry::masterJson), c);
             return c;
         }
 
-        // 2. Parse Incoming JSON
+        debugfln("web cmd: %s", jsonString);
+
         JsonDocument incomingDoc;
-        DeserializationError error = deserializeJson(incomingDoc, jsonString);
-        if (error) {
-            debugln("WiFi: Invalid JSON received");
-            return "";
+        if (deserializeJson(incomingDoc, jsonString)) return "";
+
+        if(incomingDoc["cmd"] == "refresh"){
+            String c; serializeJson((*Registry::masterJson), c); return c;
         }
-        if(incomingDoc["cmd"]=="refresh"){
-            String c;
-            serializeJson(jsonMaster, c);
-            return c;
+        if(incomingDoc["cmd"] == "clearNVS"){
+            _instance->clearNVS();
+            return "Nvs cleared";
         }
-        jsonReply.clear();
+
+        _instance->jsonReply.clear();
         JsonObject root = incomingDoc.as<JsonObject>();
 
-        // 3. Match Incoming IDs to Registry
         for (JsonPair kv : root) {
-            const char* id = kv.key().c_str();
-
-            // Loop through all registered modules (LED, Pump, etc.)
-            for (auto* c : uiRegistry) {
-                if (strcmp(c->id, id) == 0) {
+            const char* targetId = kv.key().c_str();
+            for (auto* c : Registry::controls) {
+                if (strcmp(c->id, targetId) == 0) {
                     MultiControl* mc = static_cast<MultiControl*>(c);
-
-                    // Update internal C++ variables
                     mc->updateFromNested(kv.value());
-
-                    // Update jsonMaster & prepare the Delta for other clients
-                    mc->sync(jsonReply.to<JsonObject>());
+                    mc->sync(_instance->jsonReply.to<JsonObject>());
                 }
             }
         }
 
-        // 4. Return Delta if changes occurred
-        if (jsonReply.size() > 0) {
-            String response;
-            serializeJson(jsonReply, response);
+        if (_instance->jsonReply.size() > 0) {
+            String response; serializeJson(_instance->jsonReply, response);
             return response;
         }
-
         return "";
     }
-
-private:
-    static void task(void* pv) {
-        auto* self = static_cast<Module_WiFi*>(pv);
-        self->runLoop();
-    }
-
-    void runLoop() {
-        for (;;) {
-            bool connected = (wf != nullptr && wf->isConnected());
-
-            if (!connected) {
-                debugln("WiFi: Connection lost. Reconnecting...");
-                if (wf) wf->reconnect();
-                if (rssi) *(rssi) = 0;
-                if (ip) *(ip) = "DISCONNECTED";
-            } else {
-                // Update pointers directly for high speed
-                if (rssi) *(rssi) = wf->signalStrength();
-                if (ip) *(ip) = wf->ipAddess();
-            }
-
-            // WiFi monitoring doesn't need to be fast. 10s is plenty.
-            vTaskDelay(pdMS_TO_TICKS(10000));
-        }
-    }
 };
+Module_WiFi* Module_WiFi::_instance = nullptr;

@@ -10,8 +10,24 @@ const ESPProvider = ({ children }) => {
     // --- 1. STATE & PERSISTENCE ---
     const [globalSettings, setGlobalSettings] = useState(() => {
         const saved = localStorage.getItem("global_settings");
-        return saved ? JSON.parse(saved) : { haHost: '' };
+        const defaultSettings = { haHost: '', showShortcuts: true };
+
+        if (!saved) return defaultSettings;
+
+        const parsed = JSON.parse(saved);
+        // Use spread to ensure new defaults (like showShortcuts) exist 
+        // even if the user has an old 'haHost' saved.
+        return { ...defaultSettings, ...parsed };
     });
+
+    // Helper to update settings
+    const updateGlobalSettings = (newSettings) => {
+        setGlobalSettings(prev => {
+            const updated = { ...prev, ...newSettings };
+            localStorage.setItem("global_settings", JSON.stringify(updated));
+            return updated;
+        });
+    };
 
     const [masterList, setMasterList] = useState(() => {
         const saved = localStorage.getItem("esp_fleet_config");
@@ -32,18 +48,18 @@ const ESPProvider = ({ children }) => {
     // --- 2. REFS ---
     const sockets = useRef({});
     const watchdogs = useRef({});
-    const lockedControls = useRef({});
-    const setControlLock = useCallback((id, isLocked) => {
-        if (isLocked) {
-            lockedControls.current[id] = true;
-        } else {
-            // Use a small delay before unlocking to catch any "stale" 
-            // messages still in the WebSocket buffer
-            setTimeout(() => {
-                delete lockedControls.current[id];
-            }, 100);
-        }
-    }, []);
+    // const lockedControls = useRef({});
+    // const setControlLock = useCallback((id, isLocked) => {
+    //     if (isLocked) {
+    //         lockedControls.current[id] = true;
+    //     } else {
+    //         // Use a small delay before unlocking to catch any "stale" 
+    //         // messages still in the WebSocket buffer
+    //         setTimeout(() => {
+    //             delete lockedControls.current[id];
+    //         }, 100);
+    //     }
+    // }, []);
     // --- 3. CONNECTION HELPERS ---
     const stopWatchdog = useCallback((host) => {
         if (watchdogs.current[host]) {
@@ -77,45 +93,65 @@ const ESPProvider = ({ children }) => {
 
     // --- 4. CORE LOGIC ---
     const updateEspControl = useCallback((host, idToUpdate, newValueOrObject, updateHost = true) => {
+        // We use setDevices(prev => ...) to get the latest state without needing 'devices' in the dependency array
         setDevices(prev => {
             const device = prev[host];
-            if (!device || device.status !== "loaded") return prev;
 
-            const groupName = Object.keys(device).find(group =>
-                device[group] && typeof device[group] === 'object' && device[group][idToUpdate]
+            // Safety check inside the setter
+            if (!device || device.status !== "loaded") {
+                // Note: logging inside a setter is fine for debugging, but this is why it was failing before
+                return prev;
+            }
+
+            // 1. Find the group using 'device' (which is now fresh from 'prev')
+            let groupName = Object.keys(device).find(group =>
+                device[group] &&
+                typeof device[group] === 'object' &&
+                Object.prototype.hasOwnProperty.call(device[group], idToUpdate)
             );
 
+            if (!groupName && device[idToUpdate]) groupName = idToUpdate;
             if (!groupName) return prev;
 
-            // Trigger Pulse Animation for this specific host and ID
-            setPulseData(prevPulse => ({
-                ...prevPulse,
-                [host]: { id: idToUpdate, ts: Date.now() }
-            }));
-
             const currentControl = device[groupName][idToUpdate];
-            const isObjectMerge = typeof newValueOrObject === 'object' &&
-                newValueOrObject !== null &&
-                typeof currentControl.value === 'object';
+            if (!currentControl) return prev;
 
+            const currentValue = currentControl.value;
+            const isIncomingObject = typeof newValueOrObject === 'object' && newValueOrObject !== null;
+            const isCurrentObject = typeof currentValue === 'object' && currentValue !== null;
+
+            const finalValue = (isIncomingObject && isCurrentObject)
+                ? { ...currentValue, ...newValueOrObject }
+                : newValueOrObject;
+
+            // 2. Return the new state object
             return {
                 ...prev,
                 [host]: {
-                    ...device,
+                    ...prev[host],
                     lastUpdate: Date.now(),
                     [groupName]: {
-                        ...device[groupName],
+                        ...prev[host][groupName],
                         [idToUpdate]: {
-                            ...currentControl,
-                            value: isObjectMerge ? { ...currentControl.value, ...newValueOrObject } : newValueOrObject
+                            ...prev[host][groupName][idToUpdate],
+                            value: finalValue
                         }
                     }
                 }
             };
         });
 
-        if (updateHost) sendMessage(host, idToUpdate, newValueOrObject);
-    }, [sendMessage]);
+        // 3. Trigger Animation (Outside the setter)
+        setPulseData(prevPulse => ({
+            ...prevPulse,
+            [host]: { id: idToUpdate, ts: Date.now() }
+        }));
+
+        // 4. Update Hardware
+        if (updateHost) {
+            sendMessage(host, idToUpdate, newValueOrObject);
+        }
+    }, [sendMessage]); // REMOVED 'devices' from here!
 
     const connectToDevice = useCallback((device) => {
         if (import.meta.env.DEV) return;
@@ -236,17 +272,17 @@ const ESPProvider = ({ children }) => {
             else {
                 Object.keys(data).forEach(id => {
                     // 1. THE SHIELD CHECK
-                    if (lockedControls.current[id]) {
-                        console.log(`🛡️ Shield: Denied hardware override for ${id}. Pulsing instead.`);
+                    // if (lockedControls.current[id]) {
+                    //     console.log(`🛡️ Shield: Denied hardware override for ${id}. Pulsing instead.`);
 
-                        // Trigger the pulse even though we are rejecting the state change
-                        setPulseData(prev => ({
-                            ...prev,
-                            [device.host]: { id: id, ts: Date.now() } // Use 'id' from the loop
-                        }));
+                    //     // Trigger the pulse even though we are rejecting the state change
+                    //     setPulseData(prev => ({
+                    //         ...prev,
+                    //         [device.host]: { id: id, ts: Date.now() } // Use 'id' from the loop
+                    //     }));
 
-                        return; // Exit here so updateEspControl isn't called
-                    }
+                    //     return; // Exit here so updateEspControl isn't called
+                    // }
 
                     // 2. NORMAL UPDATE
                     // If not locked, update the React state with the hardware's value
@@ -324,7 +360,14 @@ const ESPProvider = ({ children }) => {
 
         const loadDevData = async () => {
             try {
-                const data = await getDummyData();
+                const stringData = await getDummyData();
+                let data;
+                try {
+                    data = JSON.parse(stringData);
+                } catch (err) {
+                    console.error("Malformed Dev data:", stringData);
+                    return;
+                }
                 setDevices(prev => {
                     const next = { ...prev };
                     // Map dummy data to the hosts in your masterList
@@ -392,20 +435,19 @@ const ESPProvider = ({ children }) => {
         masterList, setMasterList,
         devices, setDevices,
         globalSettings,
-        updateGlobalSettings: (s) => {
-            const updated = { ...globalSettings, ...s };
-            setGlobalSettings(updated);
-            localStorage.setItem("global_settings", JSON.stringify(updated));
-        },
+        updateGlobalSettings,
         TABS,
         isInitialized,
         pulseData, setPulseData,
         updateEspControl,
         getTabStatus,
-        setControlLock,
         sendMessage,
         bulkRefresh: () => {
             Object.values(sockets.current).forEach(ws => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ cmd: "refresh" })));
+        },
+        clearNVS: (targetHost) => {
+            const ws = sockets.current[targetHost];
+            ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ cmd: "clearNVS" }));
         }
     };
 

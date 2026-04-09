@@ -13,7 +13,7 @@ def before_build_littlefs(source, target, env):
     os.makedirs(data_dir)
 
     # 3. Copy the Gzipped assets directly
-    files_to_copy = ["index.html.gz", "favicon.ico.gz"]
+    files_to_copy = ["index.html.gz", "favicon.ico.gz", "manifest.json.gz"]
     
     found_any = False
     for f in files_to_copy:

@@ -1,18 +1,21 @@
 .slider-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 5px;
+    padding-left: 1px;
     width: 100%;
 }
 
 /* label area fixed width, content spaced so icon sits at far right near the slider */
 .slider-label {
-    flex: 0 0 60px; /* adjust width as needed */
-    display: flex;
+    /* flex: 0 0 60px; */
+    min-width: 65px;
+    /* display: flex; */
     align-items: center;
     justify-content: space-between;
     box-sizing: border-box;
-    padding-right: 6px;
+    padding-right: 0px;
+    margin: 5px 5px 5px 0px;
 }
 
 /* visible text for label when not using icon */
@@ -40,13 +43,13 @@
 
 .slider-input {
     flex: 1 1 auto; /* slider grows to fill available space */
-    margin: 0 8px;
+    margin: 0 0 0 5px;
     /*-webkit-appearance: none; /* optional: consistent thumb styling across browsers */
     width: 100%;
 }
 
 .slider-value {
-    flex: 0 0 20px; /* fixed width for the value on the right */
+    flex: 0 0 15px; /* fixed width for the value on the right */
     text-align: right;
     font-family: monospace;
     font-size: 14px;
@@ -55,7 +58,8 @@
 }
 
 .slider-append {
-    margin-left: 2px;
+    margin-left: 0px;
+    margin-right : 5px;
     /* font-size: 12px;
     color: #666; */
 }

@@ -1,6 +1,6 @@
 #include "Control.h"
-
-extern JsonDocument jsonMaster;
+#include <registry.h>
+//extern JsonDocument jsonMaster;
 
 JsonObject MultiControl::getTarget(JsonObject root, const char* fullKey, const char** outKey) {
     String k(fullKey);
@@ -26,7 +26,7 @@ void SubValue::updateLast() {
     lastI = val.i; lastB = val.b; lastF = val.f; lastS = s;
 }
 
-MultiControl::MultiControl(const char* _group, const char* _id, const char* _type, const char* _name) {
+MultiControl::MultiControl(String _group, const char* _id, const char* _type, const char* _name) {
     group = _group; id = _id; type = _type; name = _name;
     values.reserve(12);
 }
@@ -36,15 +36,15 @@ MultiControl::MultiControl(const char* _group, const char* _id, const char* _typ
 //     lastChangeTime = millis();
 // }
 
-void MultiControl::addValue(const char* k, int i, bool p) { values.push_back({k, VT_INT, {.i=i}, "", i, false, 0.0f, "", p}); }
-void MultiControl::addValue(const char* k, bool b, bool p) { values.push_back({k, VT_BOOL, {.b=b}, "", 0, b, 0.0f, "", p}); }
-void MultiControl::addValue(const char* k, float f, bool p) { values.push_back({k, VT_FLOAT, {.f=f}, "", 0, false, f, "", p}); }
-void MultiControl::addValue(const char* k, String s, bool p) { values.push_back({k, VT_STRING, {0}, s, 0, false, 0.0f, s, p}); }
-void MultiControl::addValue(const char* k, const char* s, bool p){
+int* MultiControl::addValue(const char* k, int i, bool p) { values.push_back({k, VT_INT, {.i=i}, "", i, false, 0.0f, "", p}); return &values.back().val.i; }
+bool* MultiControl::addValue(const char* k, bool b, bool p) { values.push_back({k, VT_BOOL, {.b=b}, "", 0, b, 0.0f, "", p}); return &values.back().val.b; }
+float* MultiControl::addValue(const char* k, float f, bool p) { values.push_back({k, VT_FLOAT, {.f=f}, "", 0, false, f, "", p}); return &values.back().val.f; }
+String* MultiControl::addValue(const char* k, String s, bool p) { values.push_back({k, VT_STRING, {0}, s, 0, false, 0.0f, s, p}); return &values.back().s; }
+String* MultiControl::addValue(const char* k, const char* s, bool p){
     if(s == nullptr){
-        addValue(k, String("error:set to nullptr"),p);
+        return addValue(k, String("error:set to nullptr"),p);
     }else{
-        addValue(k,String(s),p);//convert to string
+        return addValue(k,String(s),p);//convert to string
     }
 }
 
@@ -67,11 +67,12 @@ void MultiControl::build(JsonObject root) {
 void MultiControl::sync(JsonObject delta) {
     bool first = true;
     for (auto& v : values) {
-        if (v.changed()) {
+        if (v.changed() || requiresSend) {
             v.updateLast();
+            requiresSend = false;
             if (first) { delta[id].to<JsonObject>(); first = false; }
             const char* k;
-            JsonObject mT = getTarget(jsonMaster[group][id]["value"].as<JsonObject>(), v.key, &k);
+            JsonObject mT = getTarget((*Registry::masterJson)[group][id]["value"].as<JsonObject>(), v.key, &k);
             JsonObject dT = getTarget(delta[id].as<JsonObject>(), v.key, &k);
             if (v.type == VT_INT) { mT[k] = v.val.i; dT[k] = v.val.i; }
             else if (v.type == VT_BOOL) { mT[k] = v.val.b; dT[k] = v.val.b; }
@@ -119,35 +120,6 @@ void MultiControl::updateInternal(const char* key, String val, bool triggerCallb
         }
     }
 }
-// Setters (with ArduinoJson 7 Callback Fix)
-// void MultiControl::set(const char* key, int val) {
-//     for (auto& v : values) if (strcmp(v.key, key) == 0) {
-//         if (v.val.i != val) { v.val.i = val; markDirtyIfPersistent(v); 
-//             if (onUpdate) { JsonDocument d; d.set(val); onUpdate(id, key, d.as<JsonVariant>()); }
-//         } return;
-//     }
-// }
-// void MultiControl::set(const char* key, bool val) {
-//     for (auto& v : values) if (strcmp(v.key, key) == 0) {
-//         if (v.val.b != val) { v.val.b = val; markDirtyIfPersistent(v); 
-//             if (onUpdate) { JsonDocument d; d.set(val); onUpdate(id, key, d.as<JsonVariant>()); }
-//         } return;
-//     }
-// }
-// void MultiControl::set(const char* key, float val) {
-//     for (auto& v : values) if (strcmp(v.key, key) == 0) {
-//         if (abs(v.val.f - val) > 0.001f) { v.val.f = val; markDirtyIfPersistent(v); 
-//             if (onUpdate) { JsonDocument d; d.set(val); onUpdate(id, key, d.as<JsonVariant>()); }
-//         } return;
-//     }
-// }
-// void MultiControl::set(const char* key, String val) {
-//     for (auto& v : values) if (strcmp(v.key, key) == 0) {
-//         if (v.s != val) { v.s = val; markDirtyIfPersistent(v); 
-//             if (onUpdate) { JsonDocument d; d.set(val); onUpdate(id, key, d.as<JsonVariant>()); }
-//         } return;
-//     }
-// }
 
 void MultiControl::set(const char* key, const char* val){
     if(val == nullptr){
@@ -155,6 +127,9 @@ void MultiControl::set(const char* key, const char* val){
     }else{
         set(key, String(val));
     }
+}
+void MultiControl::forceUiUpdate(){
+    requiresSend = true;
 }
 void MultiControl::markDirty(){
     isDirty = true;

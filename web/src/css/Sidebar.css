@@ -44,13 +44,22 @@
   /* box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); */
 }
 
-/* --- MODERN STATUS INDICATOR --- */
+@keyframes status-tick {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.4); filter: brightness(1.8); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
 .status-indicator {
   width: 4px;
   height: 12px;
   border-radius: 10px;
   margin-bottom: 10px;
   transition: all 0.3s ease;
+}
+
+.status-indicator.data-pulse {
+  animation: data-flash 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* animation: status-tick 0.4s ease-out; */
 }
 
 .status-indicator.online {

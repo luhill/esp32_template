@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ReactSortable } from 'react-sortablejs';
 import {
     Plus, Eye, EyeOff, Trash2, RotateCw,
@@ -21,10 +21,10 @@ const DeviceRow = React.memo(({
     return (
         <div className={`device-row-split ${!isConnected ? 'row-offline' : ''}`}>
             <div className="left-column">
-                <button onClick={() => toggleDeviceVisibility(dev.host)} className="vis-toggle-chip">
+                <button onClick={() => toggleDeviceVisibility(dev.host)} className="vis-toggle-chip clickable-surface">
                     {dev.visible ? <Eye size={18} className="text-blue" /> : <EyeOff size={18} className="text-muted" />}
                 </button>
-                <button onClick={() => deleteDevice(dev.id)} className="action-chip-v2 delete-chip">
+                <button onClick={() => deleteDevice(dev.id)} className="action-chip-v2 delete-chip clickable-surface">
                     <Trash2 size={16} />
                 </button>
             </div>
@@ -56,25 +56,25 @@ const DeviceRow = React.memo(({
                     />
                     <span className="sub-data-text">{dev.host}</span>
                     <span className="sub-data-divider">|</span>
-                    <span className="version-tag">{live?.info?.ver || "v?"}</span>
+                    <span className="version-tag">{live?.ver || "v?.?.?"}</span>
                     { }
-                    {live?.info?.ip && (
+                    {live?.info?.wifi?.value?.ip && (
                         <>
                             <span className="sub-data-divider">|</span>
-                            <span className="ip-tag" style={{ opacity: 0.5, fontSize: '9px' }}>{live.info.ip}</span>
+                            <span className="ip-tag">ip:{live.info.wifi.value.ip}</span>
                         </>
                     )}
                 </div>
             </div>
 
             <div className="right-column">
-                <div className="drag-handle-corner">
+                <div className="drag-handle-corner clickable-surface">
                     <GripHorizontal size={18} />
                 </div>
                 <button
                     disabled={!isConnected}
                     onClick={() => setSelectedUpdateHost(dev.host)}
-                    className={`action-chip-v2 ${!isConnected ? 'chip-disabled' : 'ota-chip'}`}
+                    className={`action-chip-v2 clickable-surface ${!isConnected ? 'chip-disabled' : 'ota-chip'}`}
                 >
                     <UploadCloud size={16} />
                 </button>
@@ -97,17 +97,47 @@ const Config = ({ onClose }) => {
     const [selectedUpdateHost, setSelectedUpdateHost] = useState(null);
     const [newRow, setNewRow] = useState({ host: '', name: '', tab: '' });
 
+
     // --- 1. HANDLERS ---
-    
+    const isInvalid = !newRow.host.trim() || masterList.some(d => d.host.toLowerCase() === newRow.host.trim().toLowerCase());
+    const hasInput = newRow.host || newRow.name || newRow.tab;
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // If selectedUpdateHost is NOT null, the overlay is open.
+            // We let the overlay handle its own escape via propagation,
+            // so we only trigger onClose if the overlay is hidden.
+            if(hasInput && e.key === 'Escape') {
+                setNewRow({ host: '', name: '', tab: '' });
+                return;
+            }
+            if (e.key === 'Escape' && !selectedUpdateHost) {
+                console.log("Escape: Closing Config Page");
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose, selectedUpdateHost]);
+
     const handleAddSubmit = () => {
-        if (!newRow.host.trim()) return;
-        
+        const trimmedHost = newRow.host.trim();
+        if (!trimmedHost) return;
+
+        if (isInvalid) {
+            console.warn(`[CONFIG] Blocked duplicate device: ${trimmedHost}`);
+            // Optional: Trigger a specific error UI here
+            alert(`Device "${trimmedHost}" is already in your fleet.`);
+            return;
+        }
+
+        // 2. PROCEED if unique
         const device = Fleet.createDeviceObject(newRow);
         const newList = Fleet.addDeviceToList(masterList, device);
-        
+
         setMasterList(newList);
         Fleet.saveFleet(newList);
-        
+
         setShowSuccess(true);
         setNewRow({ host: '', name: '', tab: '' });
         setTimeout(() => setShowSuccess(false), 600);
@@ -163,8 +193,12 @@ const Config = ({ onClose }) => {
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') handleAddSubmit();
         if (e.key === 'Escape') {
-            setNewRow({ host: '', name: '', tab: '' });
-            e.target.blur();
+            if (hasInput) {
+                setNewRow({ host: '', name: '', tab: '' });
+                e.target.blur();
+            } else {
+                onClose();
+            }
         }
     };
 
@@ -172,20 +206,36 @@ const Config = ({ onClose }) => {
     return (
         <div className="config-overlay" onClick={(e) => e.target.classList.contains('config-overlay') && onClose()}>
             <div className="iphone-container" onClick={(e) => e.stopPropagation()}>
-                <button onClick={onClose} className="close-btn-top"><XCircle size={32} /></button>
+                <button onClick={onClose} className="close-btn-top clickable-surface"><XCircle size={32} /></button>
 
                 <div className="config-content">
                     <header className="config-header">
-                        <h1 className="main-title">System</h1>
-                        <div className="header-bottom-row">
-                            <span className="subtitle">Fleet Management</span>
-                            <button onClick={bulkRefresh} className="sync-btn"><RotateCw size={14} /></button>
+                        <h1 className="main-title">Connected Devices</h1>
+                        <div className="header-bottom-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="subtitle">Refresh All</span>
+                                <button onClick={bulkRefresh} className="sync-btn clickable-surface">
+                                    <RotateCw size={14} />
+                                </button>
+                            </div>
+
+                            {/* The Toggle Switch */}
+                            <div className="shortcuts-toggle-wrapper" style={{ display: 'flex', alignItems: 'right', gap: '5px' }}>
+                                <span className="subtitle" style={{ fontSize: '0.7rem' }}>Show Shortcuts</span>
+                                <input
+                                    type="checkbox"
+                                    className="ios-checkbox"
+                                    checked={globalSettings.showShortcuts}
+                                    onChange={(e) => updateGlobalSettings({ showShortcuts: e.target.checked })}
+                                />
+                            </div>
                         </div>
                     </header>
 
                     {/* Register Node Section */}
                     <div className="glass-panel add-node-section">
-                        <label className="input-label">Register New Hardware</label>
+                        <label className="input-label">Register New Device</label>
                         <div className={`add-node-grid ${showSuccess ? 'success-flash' : ''}`}>
                             <input
                                 className="clean-input"
@@ -209,7 +259,11 @@ const Config = ({ onClose }) => {
                                 onChange={e => setNewRow({ ...newRow, tab: e.target.value })}
                                 onKeyDown={handleKeyDown}
                             />
-                            <button onClick={handleAddSubmit} className="add-btn-main">
+                            <button
+                                onClick={handleAddSubmit}
+                                disabled={isInvalid}
+                                className={`add-btn-main clickable-surface ${isInvalid ? 'btn-disabled' : ''}`}
+                            >
                                 <Plus size={24} />
                             </button>
                         </div>
@@ -229,24 +283,6 @@ const Config = ({ onClose }) => {
                             // This helps the engine realize it's a single column
                             direction="vertical"
                             className="device-list"
-                            // --- THE JAVASCRIPT LOCK ---
-    onMove={(evt) => {
-        // Returning false here doesn't cancel the drag, 
-        // but we can use this hook to reset the horizontal position.
-        evt.dragged.style.left = "0px";
-        return true; 
-    }}
-    onDrag={(evt) => {
-        // Manually force the transform to only use the Y coordinate
-        const transform = evt.item.style.transform;
-        if (transform) {
-            // Regex to grab only the Y value from translate3d(X, Y, Z)
-            const matches = transform.match(/translate3d\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
-            if (matches) {
-                evt.item.style.transform = `translate3d(0px, ${matches[2]}, 0px)`;
-            }
-        }
-    }}
                         >
                             {masterList.map((dev) => (
                                 <DeviceRow
@@ -268,7 +304,7 @@ const Config = ({ onClose }) => {
                         <BufferedInput
                             value={globalSettings.haHost || ''}
                             onSave={(val) => updateGlobalSettings({ haHost: val })}
-                            className="clean-input"
+                            className="ha-input"
                             placeholder="URL (e.g homeassistant.local:8123)"
                         />
                     </div>

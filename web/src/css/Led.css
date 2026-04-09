@@ -1,8 +1,9 @@
-.led-control {
+
+.led-settings-area {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 12px;
+    /* padding: 12px; */
 }
 
 .led-row {

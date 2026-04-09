@@ -1,0 +1,76 @@
+.text-io-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    padding: 8px 0;
+}
+
+.text-io-content {
+    display: flex;
+    align-items: center;
+    /* This fixed width acts as the "window" for your data */
+    width: 130px; 
+    height: 34px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0 0px 0px 2px;
+    justify-content: flex-start; /* Keeps the group on the left side of the box */
+}
+
+.text-io-value-group {
+    display: flex;
+    align-items: center;
+    /* No gap here, or a very small one (2px) to make them touch */
+    gap: 2px; 
+    max-width: 100%;
+}
+.text-io-content.readonly {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+/* Make it look interactable vs plain text */
+.text-io-content.interactable {
+    background: rgba(255, 255, 255, 0.05); /* Slight lift from background */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.text-io-content.interactable:focus-within {
+    border-color: #007aff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.text-io-input {
+    /* Critical: Remove all default browser widths */
+    min-width: 1ch;
+    max-width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    outline: none;
+    font-weight: 600;
+    padding: 0;
+    margin: 0;
+    /* Transition makes the units "slide" smoothly when numbers change */
+    transition: width 0.1s ease-out; 
+    text-align: center;
+}
+
+.text-io-input[readonly] {
+    cursor: default;
+    text-align: center;
+}
+
+.text-io-unit {
+    font-size: 0.85em;
+    opacity: 0.5;
+    white-space: nowrap;
+    flex-shrink: 0;
+    pointer-events: none; /* User clicks "through" the unit to hit the input */
+}
+
+.prepend { margin-right: 4px; }
+.append { margin-left: 4px; }

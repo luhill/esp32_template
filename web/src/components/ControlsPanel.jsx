@@ -8,69 +8,80 @@ import SwitchSlider from "./SwitchSlider";
 import Display from "./Display";
 import Button from "./Button";
 import List from "./List";
+import TextIO from "./TextIO";
+import PinTester from "./PinTester";
 import '../css/App.css';
 import "../css/ControlsPanel.css";
-
+import ShortcutTrigger from './ShortcutTrigger';
 import { useESPContext } from '../contexts/ESPContext';
+
 // --- SUB-COMPONENT: CONTROLROW ---
 const ControlRow = ({ host, id, config, onUpdate, renderControl }) => {
     const rowRef = useRef(null);
     const throttleTimer = useRef(null);
     const lastValue = useRef(null);
-    
-    // Grab pulseData and the locking mechanism from Context
-    const { pulseData, setControlLock } = useESPContext();
+    const hasMounted = useRef(false); // To skip the initial pulse on first render
+    const { pulseData } = useESPContext();
     const pulseInfo = pulseData[host];
     const isPulsing = pulseInfo?.id === id || pulseInfo?.ids?.includes(id);
-    // Host-Aware Pulse Check: Only pulse if THIS host matches the update
-    //const isPulsing = pulseData[host]?.id === id;
     const pulseTs = pulseData[host]?.ts;
 
-    const handleInteraction = (isStarting) => {
-        // Prevent hardware from overwriting local state during interaction
-        setControlLock(id, isStarting); 
-    };
+    const availableShortcuts = config.shortcuts || null;
 
-    // 1. ANIMATION LOGIC
+    // const handleInteraction = (isStarting) => {
+    //     // LOCK: Prevents incoming WebSocket data from jumping the UI 
+    //     // while the user is physically touching the control.
+    //     if (typeof setControlLock === 'function') {
+    //         setControlLock(id, isStarting); 
+    //     }
+    // };
+
+    // 1. PULSE FEEDBACK (Visual confirmation of hardware ACK)
     useEffect(() => {
+        if (!hasMounted.current) {
+            hasMounted.current = true;
+            return; 
+        }
         if (isPulsing && rowRef.current) {
             rowRef.current.classList.remove('pulse-feedback');
-            // Trigger reflow to restart animation
             void rowRef.current.offsetWidth; 
             rowRef.current.classList.add('pulse-feedback');
         }
-    }, [isPulsing, pulseTs?.ts]);
+    }, [isPulsing, pulseTs]);
 
-    // 2. THROTTLE & OPTIMISTIC UPDATE
+    // 2. THE THROTTLE ENGINE
+    // 50ms is perfect for ESP32—fast enough to feel "live," slow enough not to crash the heap.
     const throttledUpdate = (newValue) => {
-        // UI Update (Internal state)
-        onUpdate(id, newValue, false);
         lastValue.current = newValue;
 
-        // Leading Edge Send
         if (!throttleTimer.current) {
+            // Leading Edge: Send immediately on first touch
             onUpdate(id, newValue, true);
 
             throttleTimer.current = setTimeout(() => {
-                // Trailing Edge Send (Catch the final slider position)
+                // Trailing Edge: If the user stopped at a different value, send that final state
                 if (lastValue.current !== newValue) {
                     onUpdate(id, lastValue.current, true);
                 }
                 throttleTimer.current = null;
-            }, 50);
+            }, 50); 
         }
+        
+        // Optimistic UI update (Instant local change)
+        onUpdate(id, newValue, false);
     };
-
+    const soloButton = config.type === 'button' || config.transparent === true;
     return (
         <div
             ref={rowRef}
-            className="controlRow"
-            onMouseDown={() => handleInteraction(true)}
-            onMouseUp={() => handleInteraction(false)}
-            onTouchStart={() => handleInteraction(true)}
-            onTouchEnd={() => handleInteraction(false)}
-            onMouseLeave={() => handleInteraction(false)}
+            className={`controlRow ${soloButton? 'controlRow-button' : ''} ${config.shortcuts ? 'has-shortcuts' : ''}`}
+            // onMouseDown={() => handleInteraction(true)}
+            // onMouseUp={() => handleInteraction(false)}
+            // onTouchStart={() => handleInteraction(true)}
+            // onTouchEnd={() => handleInteraction(false)}
+            // onMouseLeave={() => handleInteraction(false)}
         >
+            <ShortcutTrigger host={host} shortcuts={availableShortcuts} />
             {renderControl(id, config, throttledUpdate)}
         </div>
     );
@@ -78,42 +89,37 @@ const ControlRow = ({ host, id, config, onUpdate, renderControl }) => {
 
 // --- MAIN COMPONENT ---
 function ControlsPanel({ host, props, onUpdate }) {
-    // Helper to render specific UI components based on type
+    const { globalSettings } = useESPContext();
+
     const renderControl = (id, config, throttledOnUpdate) => {
+        // Every component now receives 'data={config}' and 'setValue={throttledOnUpdate}'
         const components = {
-            slider: () => <Slider props={config} setValue={throttledOnUpdate} />,
-            switch: () => {
-                const hasOnKey = config.value?.on !== undefined;
-                const currentValue = hasOnKey ? config.value.on : config.value;
-                return (
-                    <Switch
-                        props={{ ...config, value: !!currentValue }}
-                        setValue={(v) => throttledOnUpdate(hasOnKey ? { on: v } : v)}
-                    />
-                );
-            },
-            led: () => <Led props={config} setValue={throttledOnUpdate} />,
-            dateTime: () => <Time props={config} setValue={throttledOnUpdate} />,
-            autoStartStop: () => <Auto props={config} setValue={throttledOnUpdate} />,
-            switchSlider: () => <SwitchSlider props={config} setValue={throttledOnUpdate} />,
-            display: () => <Display props={config} />,
-            button: () => <Button props={config} setValue={throttledOnUpdate} />,
-            list: () => <List props={config} setValue={throttledOnUpdate} />
+            slider: () => <Slider data={config} setValue={throttledOnUpdate} />,
+            switch: () => <Switch data={config} setValue={throttledOnUpdate} />,
+            led: () => <Led data={config} setValue={throttledOnUpdate} />,
+            dateTime: () => <Time data={config} setValue={throttledOnUpdate} />,
+            autoStartStop: () => <Auto data={config} setValue={throttledOnUpdate} />,
+            switchSlider: () => <SwitchSlider data={config} setValue={throttledOnUpdate} />,
+            display: () => <Display data={config} />,
+            button: () => <Button data={config} setValue={throttledOnUpdate} />,
+            list: () => <List data={config}/>,
+            textIO: () => <TextIO data={config} setValue={throttledOnUpdate} />,
+            pinTester:() => <PinTester data={config} setValue={throttledOnUpdate} />
         };
 
-        return components[config.type]?.() || <p>Unknown: {id}</p>;
+        const ControlComponent = components[config.type];
+        return ControlComponent ? ControlComponent() : <p className="error-text">Unknown type: {config.type}</p>;
     };
-
     return (
-        <div className="controlsPanel font-base">
+        <div className={`controlsPanel font-base ${globalSettings.showShortcuts ? 'show-shortcuts' : 'hide-shortcuts'}`}>
             {props.status !== "loaded" ? (
-                <div className="controlRow">
-                    <p className="status-msg">{props.status}...</p>
+                <div className="controlRow status-row">
+                    <p className="status-msg loading-dots">{props.status || "Connecting"}...</p>
                 </div>
             ) : props.controls && Object.keys(props.controls).length > 0 ? (
                 Object.entries(props.controls).map(([id, config]) => (
                     <ControlRow
-                        key={`${host}-${id}`} // Unique key per host/id pair
+                        key={`${host}-${id}`} 
                         host={host}
                         id={id}
                         config={config}
@@ -122,10 +128,9 @@ function ControlsPanel({ host, props, onUpdate }) {
                     />
                 ))
             ) : (
-                <p className="status-msg empty">No items available.</p>
+                <p className="status-msg empty">No controls found for {host}.</p>
             )}
         </div>
     );
 }
-
 export default ControlsPanel;

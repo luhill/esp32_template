@@ -23,19 +23,28 @@
 }
 .app-label{
   flex: 0 0 60px;
+  text-align: right;
 }
 
 .controlRow {
+  position: relative;
   background-color: var(--ui-color-row);
   border-style: none;
   border-radius: 12px; 
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  margin: 0px;
   gap: 16px;
   padding: 5px;
   width: 100%; /* Add this */
   box-sizing: border-box; /* Add this */
+}
+
+.controlRow-button {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    align-items: center;
 }
 /* utility class to style app-wide typography */
 .color-base{
@@ -60,10 +69,10 @@
   background-color: var(--ui-color-major);
   border: 1px solid var(--ui-color-minor);
 }
-.switch input[type="checkbox"]:checked + .slider {
+.switch-container input[type="checkbox"]:checked + .slider {
     background-color:var(--ui-color-major);
 }
-.switch input[type="checkbox"] + .slider {
+.switch-container input[type="checkbox"] + .slider {
     /* background-color:var(--ui-color-minor); */
     border: 1px solid var(--ui-color-major);
 }

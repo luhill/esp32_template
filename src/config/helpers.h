@@ -36,6 +36,12 @@ inline void debugln(float, int) {}
 #endif
 
 #define MS_PER_DAY 86400000ULL
+#define SEC_PER_DAY 86400
+#define WITHIN(N,L,H)       ((N) >= (L) && (N) <= (H))
+#define NEAR_ZERO(x) WITHIN(x, -0.000001f, 0.000001f)
+#define RECIPROCAL(x) (NEAR_ZERO(x) ? 0 : (1 / float(x)))
+#define cu(x)      ({__typeof__(x) _x = (x); (_x)*(_x)*(_x);})
+
 constexpr int timeToSec(int h, int m) { return (h * 3600) + (m * 60); }
 
 /**
@@ -50,48 +56,5 @@ inline uint32_t now_ms32() { return static_cast<uint32_t>(now_us() / 1000ULL); }
 /// @brief Convert milliseconds to FreeRTOS ticks.
 inline TickType_t to_ticks_ms(uint32_t ms) { return pdMS_TO_TICKS(ms); }
 
-// ---- Application configuration settings ---- //
-
-
-// namespace cfg
-// {
-//     // ---- Canonical task cadences ---- //
-//     namespace tick
-//     {
-//         constexpr uint32_t LOOP_MS = 10;                   ///< Standard loop cadence.
-//         constexpr uint32_t LOOP_INTERVAL_TEST_SHORT = 100; ///< Short test ms.
-//         constexpr uint32_t LOOP_INTERVAL_TEST_LONG = 1000; ///< Long test ms.
-//     } ///< Namespace tick.
-
-//     // ---- Button Timings ---- //
-//     namespace button
-//     {
-//         constexpr uint32_t BTN_DEBOUNCE_MS = 1;
-//         constexpr uint32_t BTN_SHORT_MS = 1;
-//         constexpr uint32_t BTN_LONG_MS = 1000;
-//     } ///< Namespace button.
-
-//     // ---- Motor (MCPWM) ---- //
-//     namespace motor
-//     {
-//         constexpr int RPWM_PIN = -1;
-//         constexpr int LPWM_PIN = 6;
-//         constexpr int EN_PIN = -1;
-//     } ///< Namespace motor.
-
-//     // ---- Remote Control (RCLink) ---- //
-//     namespace rotary_encoder{
-//         constexpr byte PIN_ROTARY_A = 11;       ///< iBUS data in.
-//         constexpr byte PIN_ROTARY_B = 12;      ///< Not required for iBUS (disabled).
-//         constexpr byte PIN_ROTARY_S = 13; 
-//     } ///< Namespace rotary_encoder.
-//     namespace led{
-//         constexpr byte PIN_LED_DATA_ONBOARD = 48; ///< ESP32 S3 mini built in led data pin on GPIO 48
-//         constexpr byte PIN_LED_DATA = 7;
-//         constexpr uint8_t NUM_LEDS = 2;
-//         constexpr uint8_t COLOR_ORDER = BRG;
-//         // Note: LED_TYPE is defined as a macro above since it's a type, not a value
-//     }
-// } ///< Namespace cfg.
 
 

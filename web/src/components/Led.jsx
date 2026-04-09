@@ -4,6 +4,7 @@ import Switch from "./Switch";
 import Color from "./Color";
 import "../css/Color.css";
 import '../css/App.css';
+import '../css/Led.css';
 /* takes json as below:
 {
     "id": 2,
@@ -25,42 +26,102 @@ import '../css/App.css';
 */
 
 
-function Led({ props, setValue }) {
-    const { name, max_brightness, modes, value = {} } = props || {};
-    const { on, brightness, color, mode, speed } = value;
+function Led({ data, setValue }) {
+    // 1. Level 1 Extraction: The Config
+    const config = data || {};
+    const { 
+        name = "LED Control", 
+        max_brightness = 255, 
+        modes = [], 
+        value = {} 
+    } = config;
 
-    const onPowerChange = (v) => setValue({ on: v });
-    const onBrightnessChange = (v) => setValue({ brightness: v });
-    const onColorChange = (v) => setValue && setValue({ color: v });
-    const onModeChange = (e) => setValue && setValue({ mode: e.target.selectedIndex });
-    const onSpeedChange = (v) => setValue({ speed: v });
+    // 2. Level 2 Extraction: The State
+    // !! ensures 'on' is always a strict boolean (handles 1/0 from ESP32)
+    const isPowerOn = !!value?.on; 
+    const brightness = value?.brightness ?? 0;
+    const modeIndex = Number(value?.mode) || 0;
+    const speed = value?.speed ?? 50;
+    const currentColor = value?.color || { r: 0, g: 0, b: 0 };
+
+    // 3. Expert "Solid" Check
+    // Checks if the current mode name contains "solid" (resilient to reordering)
+    const modesArray = Array.isArray(modes) ? modes : [];
+    const currentModeName = modesArray[modeIndex] || "";
+    const isSolidMode = currentModeName.toLowerCase().includes("solid");
+
+    const safeUpdate = (key, val) => {
+        if (typeof setValue === 'function') {
+            setValue({ [key]: val });
+        }
+    };
 
     return (
-        <>
-            <Switch props={{ name, value: on }} setValue={onPowerChange} />
+        <div className="led-group-container">
+            {/* Main Power Toggle */}
+            <Switch 
+                data={{ name, value: isPowerOn }} 
+                setValue={(v) => safeUpdate('on', v)} 
+            />
 
-            {brightness != null && (
-                <Slider
-                    props={{ name: "Brightness", value: brightness, max: max_brightness, useIcon: true }}
-                    setValue={onBrightnessChange}
-                />
-            )}
+            {/* Sub-controls only visible when power is ON */}
+            {isPowerOn && (
+                <div className="led-settings-area fade-in">
+                    
+                    {/* Brightness Control */}
+                    <Slider
+                        data={{ 
+                            name: "Brightness", 
+                            value: brightness, 
+                            max: max_brightness, 
+                            useIcon: true 
+                        }}
+                        setValue={(v) => safeUpdate('brightness', v)}
+                    />
 
-            {Array.isArray(modes) && mode != null && (
-                <div className="color-row">
-                    <label className="color-label font-base">Mode:</label>
-                    <select className="color-select color-base" value={mode} onChange={onModeChange}>
-                        {modes.map((m, i) => (
-                            <option key={i} value={i} className="font-base">
-                                {m}
-                            </option>
-                        ))}
-                    </select>
+                    {/* Mode Selector */}
+                    {modesArray.length > 0 && (
+                        <div className="color-row">
+                            <label className="app-label color-label font-base">Pattern</label>
+                            <select 
+                                className="color-select color-base" 
+                                value={modeIndex} 
+                                onChange={(e) => safeUpdate('mode', Number(e.target.value))}
+                            >
+                                {modesArray.map((m, i) => (
+                                    <option key={i} value={i} className="font-base">
+                                        {m || `Mode ${i}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Contextual Logic Area */}
+                    <div className="led-contextual-controls">
+                        {isSolidMode ? (
+                            <Color 
+                                // Matches Color.jsx expectation: data.value.color
+                                data={{ 
+                                    name: "Fixed Color", 
+                                    value: { color: currentColor } 
+                                }} 
+                                // Color returns {r, g, b}, we nest it back into 'color' key
+                                setValue={(v) => safeUpdate('color', v.color)} 
+                            />
+                        ) : (
+                            <Slider 
+                                data={{ 
+                                    name: "Speed", 
+                                    value: speed, 
+                                }} 
+                                setValue={(v) => safeUpdate('speed', v)} 
+                            />
+                        )}
+                    </div>
                 </div>
             )}
-            {mode === 0 && color != null && <Color props={props} setValue={onColorChange} />}
-            {mode !== 0 && speed != null && <Slider props={{ name: "Speed", value: speed }} setValue={onSpeedChange} />}
-        </>
+        </div>
     );
 }
 

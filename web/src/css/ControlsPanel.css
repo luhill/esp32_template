@@ -48,9 +48,77 @@
 } */
 .pulse-feedback {
   /* animation: ripple-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; */
-  animation: heartbeat-glow 0.6s ease-out;
+  /* animation: heartbeat-glow 0.6s ease-out; */
+  animation: heartbeat-glow 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.controlRow-button .shortcut-container{
+    /* top: 30px; */
+    /* right: 20px; */
+    /* Offset it so it sits on the top-right corner of the button lens */
+    transform: translate(-50px, 35px);
+    z-index: 20;
+}
+.shortcut-container {
+    position: absolute;
+    top: -15px;
+    right: -2px;
+    z-index: 50;
+}
+/* If the global 'hide-shortcuts' class is present, vanish all triggers */
+.hide-shortcuts .shortcut-container {
+    display: none !important;
+}
+/* When the menu is open, we "lift" the entire container bubble */
+.shortcut-container:has(.shortcut-dropdown) {
+    z-index: 999; 
+}
+.shortcut-icon-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    border-radius: 50%;
+    transition: background 0.2s;
 }
 
+.shortcut-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.shortcut-dropdown {
+    position: absolute;
+    right: 0;
+    top: 35px;
+    background: #2c2c2e; /* iOS Dark Mode Grey */
+    border: 1px solid #3a3a3c;
+    border-radius: 10px;
+    width: 180px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    overflow: hidden;
+    z-index: 100;
+}
+
+.shortcut-header {
+    padding: 10px;
+    font-size: 11px;
+    color: #8e8e93;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.2);
+}
+
+.shortcut-item {
+    padding: 12px 10px;
+    font-size: 14px;
+    color: white;
+    border-bottom: 1px solid #3a3a3c;
+    cursor: pointer;
+}
+
+.shortcut-item:last-child { border-bottom: none; }
+.shortcut-item:active { background: #3a3a3c; }
 @keyframes ripple-in {
   0% {
     box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); /* Start far out */

@@ -1,38 +1,62 @@
 {
-    "controls":{
-        "auto":{
-            "type":"autoStartStop",
-            "value":{
-                "date_time_now":"2026-02-24T17:38:38",
-                "on": 1,
-                "start": 28800,
-                "stop": 55800
+    "ver": "v1.0.11",
+    "home": {
+        "pump": {
+            "type": "switchSlider",
+            "name": "Water Pump",
+            "value": {
+                "on": false,
+                "duty_target": 31,
+                "duty": 0
             }
         },
-        "pump":{
-            "type":"switchSlider",
-            "value":{
-                "on": 0,
-                "duty": 0
-            },
-            "name":"Pump",
-            "append":"%"
-        },
-        "led":{
-            "type":"led_rgb",
-            "value":{
-                "on": 1,
-                "brightness": 255,
-                "color": "0xff00bb",
-                "mode": "rainbow",
-                "speed": 50
-            },
-            "name":"Led",
+        "led_strip": {
+            "type": "led",
+            "name": "LED",
             "max_brightness": 255,
-            "modes":[
-                "solid",
-                "rainbow"
-            ]
+            "modes": [
+                "Solid",
+                "Rainbow",
+                "Breathe",
+                "Fire"
+            ],
+            "value": {
+                "on": true,
+                "brightness": 255,
+                "mode": 1,
+                "speed": 13,
+                "color": {
+                    "r": 255,
+                    "g": 0,
+                    "b": 187
+                }
+            }
+        }
+    },
+    "settings": {
+        "auto_off": {
+            "type": "switchSlider",
+            "name": "Auto Off",
+            "append": "sec",
+            "min": 5,
+            "max": 30,
+            "value": {
+                "on": true,
+                "duty": 12
+            }
+        }
+    },
+    "info": {
+        "wifi": {
+            "type": "display",
+            "name": "WiFi Status",
+            "thresholds": {
+                "rssi": -80
+            },
+            "value": {
+                "rssi": -51,
+                "ip": "10.0.0.133"
+            }
         }
     }
 }

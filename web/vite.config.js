@@ -5,7 +5,7 @@ import compression from 'vite-plugin-compression2';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
-  const isPwa = mode === 'pwa' || mode === 'github' || mode === 'ha';
+  const isPwa = mode === 'pwa' || mode === 'github' || mode === 'ha' || mode === 'development';
   const version = Math.floor(Date.now() / 1000);
 
   const cacheBuster = {
@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
     transformIndexHtml(html) {
       // ONLY apply cache busting if we are in PWA/HA mode
       // ESP32 builds don't need this because viteSingleFile inlines everything!
+      return html;//cache busting breaks the service worker.
       if (!isPwa) return html; 
 
       return html
@@ -28,16 +29,29 @@ export default defineConfig(({ mode }) => {
 
       // ESP32 Mode: Inline and Gzip
       !isPwa && viteSingleFile(),
-      !isPwa && compression({ 
-          algorithm: 'gzip', 
-          include: [/\.(html)$/, /\.(ico)$/], 
-          deleteOriginalAssets: true 
+      !isPwa && compression({
+        algorithm: 'gzip',
+        include: [/\.(html)$/, /\.(ico)$/, /\.(json)$/, /\.(png)$/],
+        deleteOriginalAssets: true
       }),
 
       // PWA Mode
-      isPwa && VitePWA({
-        registerType: 'autoUpdate',
-        manifest: { /* ... your manifest config ... */ }
+      // isPwa && VitePWA({
+      VitePWA({
+        registerType: 'prompt',
+        manifest: false, // We provide our own manifest.json in the public folder
+        enableWorkboxModulesLogs: false, // 1. Shuts up the console logs
+        workbox: mode === 'development'? { 
+          disableDevLogs: true,
+          globPatterns: {},
+          }:{
+            globPatterns: ['**/*.{js,css,html,json,ico,png,svg}'],
+          },
+        devOptions: {
+          enabled: true,
+          type: 'module', // Recommended for better debugging in Dev
+          suppressWarnings: true
+        },
       })
     ],
     base: mode === 'github' ? './' : (mode === 'ha' ? '/' : '/'),
@@ -55,6 +69,10 @@ export default defineConfig(({ mode }) => {
           keep_fnames: true, // Prevents breaking dnd-kit internal logic
         },
       },
+    },
+    optimizeDeps: {
+      // This tells Vite NOT to try and pre-bundle the virtual module
+      exclude: ['virtual:pwa-register', 'virtual:pwa-register/react']
     }
   }
 });

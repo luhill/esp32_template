@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useParams, useNavigate, useLocation, NavLink, useSearchParams } from 'react-router-dom';
-import { HouseWifiIcon, XCircleIcon} from "lucide-react";
+import { HouseWifiIcon, XCircleIcon } from "lucide-react";
 import { SiHomeassistant } from 'react-icons/si'
 import { useESPContext } from './contexts/ESPContext';
 import Sidebar from './components/Sidebar';
@@ -11,7 +11,7 @@ import ControlsPage from './pages/ControlsPage';
 import Config from './pages/Config4';
 //import { Settings} from 'lucide-react';
 import DevPulseHelper from './helpers/DevPulseHelper';
-
+import ReloadPrompt from './components/ReloadPrompt';
 
 const DeviceLayout = () => {
   const { host } = useParams();
@@ -69,38 +69,61 @@ const PathTracker = () => {
 // 1. Create a sub-component for the main layout
 const AppContent = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { masterList, isInitialized, globalSettings, isESP32, isDev } = useESPContext();
+  const { masterList, globalSettings, isESP32, isDev } = useESPContext();
   const { pathname, search } = useLocation(); // Destructure 'search' here
   const navigate = useNavigate();
+  
+  const hapticFeedback = (ms = 10) => {
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(ms);
+    }
+  };
 
   useEffect(() => {
-    if (!isInitialized) return;
+    const handleGlobalClick = (e) => {
+      // Only vibrate if we clicked a button or a specifically marked clickable element
+      if (e.target.closest('button') || e.target.closest('.clickable-surface')) {
+        hapticFeedback(10);
+      }
+    };
 
-    // 1. Only redirect if we are exactly at the root "/"
+    window.addEventListener('touchstart', handleGlobalClick);
+    return () => window.removeEventListener('touchstart', handleGlobalClick);
+  }, []);
+
+  useEffect(() => {
     if (pathname === "/") {
+
       const savedPath = localStorage.getItem("last_esp_path");
+      const currentSearch = search || "";
+
+      // 2. Logic: If we have a valid saved path, go there
       const pathSegments = savedPath ? savedPath.split('/').filter(Boolean) : [];
       const savedTab = pathSegments[0];
       const isStillValid = masterList.some(d => d.tab === savedTab && d.visible);
 
-      // 2. THE FIX: Explicitly grab the current search string (e.g., "?showConfig=true")
-      const currentSearch = search || "";
-
       if (isStillValid && savedPath && savedPath !== "/") {
-        // Construct the full URL: "/Bathroom/settings?showConfig=true"
         navigate(`${savedPath}${currentSearch}`, { replace: true });
-      } else {
-        const firstTab = masterList?.find(d => d.visible)?.tab;
-        if (firstTab) {
-          // Construct the full URL: "/Bathroom?showConfig=true"
-          navigate(`/${firstTab}${currentSearch}`, { replace: true });
-        } else if (!searchParams.get('showConfig')) {
-          setSearchParams({ showConfig: true });
+        return;
+      }
+
+      // 3. Logic: No valid saved path, find first tab
+      const firstTab = masterList?.find(d => d.visible)?.tab;
+
+      if (firstTab) {
+        navigate(`/${firstTab}${currentSearch}`, { replace: true });
+      }
+      else {
+        // 4. THE PI FIX: No devices found in masterList
+        // Only trigger if we aren't already showing config
+        if (searchParams.get('showConfig') !== 'true') {
+          console.log("🚀 No devices found on Pi, forcing Config Overlay");
+          setSearchParams({ showConfig: true }, { replace: true });
         }
       }
     }
-  }, [isInitialized, masterList, pathname, search, navigate, searchParams, setSearchParams]);
-
+  }, [masterList, pathname, search, navigate, searchParams, setSearchParams]);
+  
   const visibleTabs = [...new Set(masterList.filter(d => d.visible).map(d => d.tab))];
   const hasMultipleTabs = visibleTabs.length > 1;
   const isConfigOpen = searchParams.get('showConfig') === 'true' || pathname === '/config';
@@ -176,7 +199,7 @@ const AppContent = () => {
           className="floating-ha-btn"
         >
           {/* <HomeAssistantIcon size={155} active={showHAButton} /> */}
-          <SiHomeassistant size={20} color='#03a9f4'/>
+          <SiHomeassistant size={20} color='#03a9f4' />
         </button>
       )}
       {hasMultipleTabs && <Sidebar />}
@@ -189,9 +212,17 @@ const AppContent = () => {
             <Route path="settings" element={<ControlsPage data_field="settings" />} />
             <Route path="info" element={<ControlsPage data_field="info" />} />
           </Route>
-          <Route path="/" element={null} />
+          <Route path="/" element={
+            masterList.length === 0 ? (
+              <div className="empty-state">
+                <h2>No Devices Connected</h2>
+                <p>Tap the House icon or use the Config menu to add your first device.</p>
+              </div>
+            ) : null
+          } />
         </Routes>
-        <DevPulseHelper />
+        <DevPulseHelper />{/* only visible in development */ }
+        <ReloadPrompt />{/* This component listens for SW updates and shows a prompt when needed */ }
       </main>
     </div>
   );

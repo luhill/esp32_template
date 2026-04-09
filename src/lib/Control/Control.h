@@ -29,7 +29,7 @@ struct SubValue {
 
 class ControlBase {
 public:
-    const char* group;
+    String group;
     const char* id;
     virtual void build(JsonObject root) = 0;
     virtual void sync(JsonObject delta) = 0;
@@ -44,22 +44,43 @@ public:
     ControlCallback onUpdate = nullptr;
 
     bool isDirty = false;
+    bool requiresSend = false;
     unsigned long lastChangeTime = 0;
 
-    MultiControl(const char* _group, const char* _id, const char* _type, const char* _name);
+    MultiControl(String _group, const char* _id, const char* _type, const char* _name);
 
     // Initializers (persist defaults to false)
-    void addValue(const char* key, int initial, bool persist = false);
-    void addValue(const char* key, bool initial, bool persist = false);
-    void addValue(const char* key, float initial, bool persist = false);
-    void addValue(const char* key, String initial, bool persist = false);
-    void addValue(const char* key, const char* initial, bool persist = false);//catch const char* and route to String constructor
+    // void addValue(const char* key, int initial, bool persist = false);
+    // void addValue(const char* key, bool initial, bool persist = false);
+    // void addValue(const char* key, float initial, bool persist = false);
+    // void addValue(const char* key, String initial, bool persist = false);
+    int* addValue(const char* key, int initial, bool persist = false);
+    bool* addValue(const char* key, bool initial, bool persist = false);
+    float* addValue(const char* key, float initial, bool persist = false);
+    String* addValue(const char* key, String initial, bool persist = false);
+    String* addValue(const char* key, const char* initial, bool persist = false);//catch const char* and route to String constructor
 
     template <typename T>
-    void setMeta(const char* path, T metaValue) {
+    void setMeta(const char* path, T metaValue, const char* parent = nullptr) {
+        // 1. Get or create the root metadata object
+        JsonObject metaObj = metadata.is<JsonObject>()
+                                 ? metadata.as<JsonObject>()
+                                 : metadata.to<JsonObject>();
+
+        // 2. The "Context" starts at the root, but shifts if a parent is
+        // provided
+        JsonObject context = metaObj;
+
+        if (parent != nullptr) {
+            // Ensure the parent object exists (e.g., "shortcuts": {})
+            context = metaObj[parent].is<JsonObject>()
+                          ? metaObj[parent].as<JsonObject>()
+                          : metaObj[parent].to<JsonObject>();
+        }
+
+        // 3. Now run your existing getTarget logic on the chosen context
         const char* shortKey;
-        JsonObject metaObj = metadata.is<JsonObject>() ? metadata.as<JsonObject>() : metadata.to<JsonObject>();
-        getTarget(metaObj, path, &shortKey)[shortKey] = metaValue;
+        getTarget(context, path, &shortKey)[shortKey] = metaValue;
     }
 
     template <typename... Args>
@@ -87,7 +108,7 @@ public:
     void updateFromNested(JsonVariant incoming, String path = "");
     void markDirty();
     void markDirtyIfPersistent(const SubValue& v);
-
+    void forceUiUpdate();
     // High-Speed Cached Pointers (O(1) Access)
     int* getIntPtr(const char* key);
     bool* getBoolPtr(const char* key);

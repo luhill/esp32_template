@@ -5,7 +5,7 @@ import '../css/Upload.css';
 
 // 1. Accept targetHost as a prop instead of using useParams
 function Upload({ targetHost, onClose }) {
-  const { devices, masterList } = useESPContext();
+  const { devices, masterList, clearNVS } = useESPContext();
   
   // Find the metadata for the specific host we are updating
   const deviceConfig = masterList.find(d => d.host === targetHost) || {};
@@ -23,6 +23,28 @@ function Upload({ targetHost, onClose }) {
     setProgress(0);
     setIsWaiting(false);
   }, [targetHost]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        console.log("Escape: Closing Update Overlay");
+        e.stopPropagation(); // Prevents Config from seeing this press
+        onClose();
+      }
+    };
+
+    // Listen on window to catch it globally while open
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleEraseNVS = () => {
+    const confirmed = window.confirm(`Erase control settings for ${deviceConfig.name || targetHost}?`);
+    if (confirmed) {
+      clearNVS(targetHost);
+      console.log(`NVS Erase command dispatched to ${targetHost}`);
+    }
+  };
 
   const handleFileSelection = (e, expectedName, type) => {
     const file = e.target.files[0];
@@ -153,7 +175,7 @@ function Upload({ targetHost, onClose }) {
         <div className="card-icon">🚀</div>
         <div className="card-text">
           <strong>Firmware</strong>
-          <span>Update logic (.bin)</span>
+          <span>(firmware.bin)</span>
         </div>
       </div>
 
@@ -162,151 +184,20 @@ function Upload({ targetHost, onClose }) {
         <div className="card-icon">📁</div>
         <div className="card-text">
           <strong>Filesystem</strong>
-          <span>Update UI/Data (.bin)</span>
+          <span>(littlefs.bin)</span>
         </div>
       </div>
+    </div>
+    <div className={`erase-card ${isOffline ? 'disabled' : ''}`} onClick={() => handleEraseNVS()}>
+        {/* </div><input type="file" id="clear_nvs" hidden onChange={(e) => handleFileSelection(e, "firmware.bin", "firmware")} /> */}
+        <div className="card-icon">🗑️</div>
+        <div className="card-text">
+          <strong>Clear Settings</strong>
+          <span>(erase NVS)</span>
+        </div>
     </div>
   </div>
 );
 }
 
 export default Upload;
-
-// import { useState, useEffect, useRef } from "react";
-// import { useParams } from "react-router-dom"; // Need this for the ID
-// import { useESPContext } from "../contexts/ESPContext";
-// import '../css/Upload.css';
-
-// function Upload() {
-//   const { host } = useParams();
-//   const { devices, DEVICE_LIST } = useESPContext();
-  
-//   // Get live data for THIS specific device
-//   const deviceData = devices[host] || { connection: "disconnected" };
-//   // Find the host/remote from the blueprint list
-//   const blueprint = DEVICE_LIST.find(d => d.host === host) || {};
-
-//   const [status, setStatus] = useState("Ready");
-//   const [progress, setProgress] = useState(0);
-//   const [isWaiting, setIsWaiting] = useState(false);
-//   const isDev = import.meta.env.DEV;
-
-//   const handleFileSelection = (e, expectedName, type) => {
-//     const file = e.target.files[0];
-//     if (!file) return;
-
-//     if (file.name !== expectedName) {
-//       alert(`Invalid File! Please select "${expectedName}" specifically.`);
-//       e.target.value = "";
-//       return;
-//     }
-
-//     if (isDev) {
-//       simulateUpload(type);
-//     } else {
-//       uploadFile(file, type);
-//     }
-//     e.target.value = "";
-//   };
-
-//   const uploadFile = (file, type) => {
-//     const xhr = new XMLHttpRequest();
-    
-//     xhr.upload.onprogress = (event) => {
-//       if (event.lengthComputable) {
-//         const percent = Math.round((event.total > 0) ? (event.loaded / event.total) * 95 : 0);
-//         setProgress(percent);
-//       }
-//     };
-
-//     xhr.onload = () => {
-//       if (xhr.status === 200) {
-//         setProgress(100);
-//         setStatus("Success! Rebooting...");
-//       } else {
-//         setStatus("Error: " + xhr.statusText);
-//       }
-//     };
-
-//     xhr.onerror = () => setStatus("Network Error");
-
-//     // --- FIX: Resolve the correct URL for the specific device ---
-//     const protocol = window.location.protocol; // https: or http:
-//     const host = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1') 
-//                  ? blueprint.host 
-//                  : blueprint.remote;
-    
-//     // Construct absolute URL: https://bidet.drnadiaelahi.com
-//     xhr.open("POST", `${protocol}//${host}/do-update`);
-    
-//     xhr.setRequestHeader("Content-Type", "application/octet-stream");
-//     xhr.setRequestHeader("X-File-Type", type);
-//     xhr.send(file);
-//     setStatus(`Starting ${type} upload to ${host}...`);
-//   };
-
-//   const simulateUpload = (type) => {
-//     setStatus(`Simulating ${type} upload...`);
-//     let p = 0;
-//     const interval = setInterval(() => {
-//       p += 10;
-//       setProgress(p);
-//       if (p >= 100) {
-//         clearInterval(interval);
-//         setStatus("Success! (Simulated)");
-//         setTimeout(() => setProgress(0), 2000);
-//       }
-//     }, 200);
-//   };
-
-//   // Monitor for Reboot based on the SPECIFIC device connection
-//   useEffect(() => {
-//     if (status.includes("Success")) {
-//       setIsWaiting(true);
-
-//       if (deviceData.connection !== "connected") {
-//         setStatus("Rebooting... Waiting for device...");
-//       }
-
-//       if (deviceData.connection === "connected" && isWaiting) {
-//         console.log(`✅ ${host} Restored!`);
-//         setStatus("Online!");
-//         setIsWaiting(false);
-//         setTimeout(() => {
-//           setStatus("Ready");
-//           setProgress(0);
-//         }, 2000);
-//       }
-//     }
-//   }, [deviceData.connection, status, host, isWaiting]);
-
-//   return (
-//     <div className="controlsPanel font-base">
-//       <h4 className="group-title">Update: {deviceData.name || host}</h4>
-      
-//       <div className="progress-container color-minor">
-//         <div className="progress-fill color-major" style={{ width: `${progress}%` }} />
-//       </div>
-
-//       <div className="controlRow update-row">
-//         <label className="app-label">Firmware</label>
-//         <input type="file" id="firm_input" className="file-input-hidden" onChange={(e) => handleFileSelection(e, "firmware.bin", "firmware")} />
-//         <button className="app-btn update-btn font-base" onClick={() => document.getElementById('firm_input').click()} disabled={isWaiting}>
-//           Select .bin
-//         </button>
-//       </div>
-
-//       <div className="controlRow update-row">
-//         <label className="app-label">Filesystem</label>
-//         <input type="file" id="fs_input" className="file-input-hidden" onChange={(e) => handleFileSelection(e, "littlefs.bin", "fs")} />
-//         <button className="app-btn update-btn font-base" onClick={() => document.getElementById('fs_input').click()} disabled={isWaiting}>
-//           Select .bin
-//         </button>
-//       </div>
-
-//       <p className="status-readout color-major">{status}</p>
-//     </div>
-//   );
-// }
-
-// export default Upload;

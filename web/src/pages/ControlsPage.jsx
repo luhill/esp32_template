@@ -14,7 +14,7 @@ function ControlsPage({ data_field = "home" }) {
 
   // 1. Wait for LocalStorage/MasterList to actually load
   if (!isInitialized) {
-    return <div className="p-4 opacity-50">Initializing Fleet...</div>;
+    // return <div className="p-4 opacity-50">Initializing Fleet...</div>;
   }
 
   // 2. Tab doesn't exist in the Master List
@@ -51,13 +51,14 @@ function ControlsPage({ data_field = "home" }) {
               <h5 className="zone-label">{device.name}</h5>
               <WifiStatusIcon live={live} isConnected={isConnected}/>
             </div>
-            <ControlsPanel 
+            <ControlsPanel
               host={device.host}
-              props={{ 
-                controls: live[data_field], 
-                status: live.status || 'waiting' 
-              }} 
-              onUpdate={(id, val, updateHost) => updateEspControl(device.host, id, val, updateHost)} 
+              props={{
+                // controls: Object.entries(live).find(([k]) => k.toLowerCase() === data_field.toLowerCase())?.[1] || {},
+                controls:live[data_field] || {},
+                status: live.status || 'waiting'
+              }}
+              onUpdate={(id, val, updateHost) => updateEspControl(device.host, id, val, updateHost)}
             />
           </div>
         );

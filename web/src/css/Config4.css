@@ -7,9 +7,9 @@
     justify-content: center;
     align-items: flex-start;
     padding: 40px 40px;
-    background: rgba(0, 0, 0, 0.2);
+    /* background: rgba(0, 0, 0, 0.3); */
     /* Slightly darker for better focus */
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(3px) brightness(0.75);
 }
 
 .iphone-container {
@@ -17,11 +17,11 @@
     max-height: 90vh;
     background: #090a0f;
     border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
+    border-radius: 12px;
     /* More rounded 'iPhone' feel */
     position: relative;
     overflow: hidden;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.407);
     display: flex;
     flex-direction: column;
 }
@@ -33,7 +33,12 @@
     -webkit-overflow-scrolling: touch;
     /* Smooth iOS scroll */
 }
-
+.header-bottom-row{
+    display: flex;
+    margin-top: 8px;
+    padding-right: 10px;
+    box-sizing: border-box;
+}
 /* --- 2. HEADERS --- */
 .config-header {
     margin-top: 10px;
@@ -54,7 +59,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-right: 5px;
+    margin-right: 0px;
 }
 
 .sync-btn {
@@ -89,7 +94,14 @@
     /* Essential for mobile taps */
     user-select: none;
 }
-
+.device-row-split:hover{
+/* .device-row-split:focus-within{ */
+    transform: scale(1.02);
+    filter:brightness(1.1);
+}
+.device-row-split:focus-within{
+    border-width: 2px;
+}
 /* SortableJS States */
 .sortable-ghost {
     /* Make the container a ghost */
@@ -134,7 +146,11 @@
     /* Subtle "Lift" effect */
     /* transform: scale(1.03) !important; */
 }
-
+.btn-disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
 .row-offline {
     border-color: rgba(255, 77, 77, 0.2);
 }
@@ -228,7 +244,7 @@
     font-size: 11px;
 }
 
-.version-tag {
+.version-tag, .ip-tag {
     background: rgba(3, 169, 244, 0.1);
     color: #03a9f4;
     font-size: 9px;
@@ -288,15 +304,29 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease; /* Smooth transition */
+}
+div.glass-panel:hover{
+    transform: scale(0.98);
+    /* border: 5px solid rgba(255, 255, 255, 0.1); */
 }
 
 .add-node-section {
     margin-bottom: 20px;
     padding: 10px;
-    border-top: 1px solid rgba(3, 169, 244, 0.3);
+    background: transparent;
+    border:none;
+    border-radius: 0;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.25);
+    /* border-top: 1px solid rgba(3, 169, 244, 0.3); */
 }
-
+.infrastructure-section {
+    background: transparent;
+    border:none;
+    border-radius: 0;
+    border-top: 3px solid rgba(255, 255, 255, 0.25);
+}
 .add-node-grid {
     display: grid;
     /* 1fr 1fr 1fr = 3 equal columns, 'auto' = the button's width */
@@ -348,7 +378,10 @@
     background: #0288d1;
 }
 
-.add-btn-main:active {
+.clickable-surface:hover{
+    transform: scale(1.1);
+}
+.clickable-surface:active{
     transform: scale(0.95);
 }
 
@@ -373,7 +406,12 @@
     border-radius: 8px;
     font-size: 14px;
 }
-
+.clean-input.ha-input{
+    /* display: flex; */
+    width: 100%;
+    box-sizing: border-box;
+    display:block;
+}
 /* --- 8. UTILS --- */
 .close-btn-top {
     position: absolute;
@@ -396,4 +434,21 @@
 
 .text-muted {
     color: rgba(255, 255, 255, 0.2);
+}
+.ota-modal-overlay {
+  position: fixed; 
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  inset: 0;
+  /* background: rgba(0, 0, 0, 0.4); */
+  backdrop-filter: blur(3px) brightness(0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  cursor: pointer;
 }

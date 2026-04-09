@@ -33,6 +33,11 @@
   width: 100%;
   border-bottom: 1px solid rgba(0,0,0,0.05); /* Subtle separator */
 }
+.display-label{
+  min-width: 80px;
+  text-align: right;
+  margin-right: 10px;
+}
 .group-title {
   margin: 8px 0 4px 0; /* Top, Right, Bottom, Left */
   padding-bottom: 4px;
